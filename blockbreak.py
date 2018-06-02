@@ -175,8 +175,8 @@ class Play():
 
         imageList = pygame.image.load("paddleimages.png")
         for i in range(2):
-            surface = pygame.Surface((80, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 80, 20))
+            surface = pygame.Surface((80, 5))
+            surface.blit(imageList, (0, 0), (0, 5 * i, 80, 5))
             paddle.images.append(surface)
 
         imageList = pygame.image.load("ballimages.png")
@@ -213,8 +213,8 @@ class Play():
         block((0, 40), 27); block((460, 40), 27)  # 両サイドの壁
 
         # パドルとボールのリセット
-        self.paddle.rect.topleft = (200, 380)
-        self.ball.rect.topleft = (232, 368)
+        self.paddle.rect.topleft = (200, 395)
+        # ボールの位置は初期設定不要（resetでset_onになったらupdateがやってくれる）
         self.ball.reset()
 
     def update(self):
