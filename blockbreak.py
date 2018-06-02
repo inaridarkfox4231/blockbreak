@@ -80,7 +80,8 @@ class Play():
         self.ball = ball((232, 368), self.blocks, self.paddle)
 
         self.state = GameState()  # Stateの初期化
-        # self.font = pygame.font.SysFont(None, 40)
+        # ここでライフ画像の初期化。
+        self.state.life_image_update(self.ball.life)
 
         clock = pygame.time.Clock()
         self.frame = 0
@@ -200,7 +201,7 @@ class Play():
         imageList = self.load_image("NUMBERS")
         for i in range(10):
             surface = pygame.Surface((18, 30))
-            surface.blit(imageList, (0, 0), (18 * i, 30, 18, 30))
+            surface.blit(imageList, (0, 0), (18 * i, 0, 18, 30))
             GameState.numbers.append(surface)
 
         # 各種選択肢画像
@@ -268,12 +269,13 @@ class Play():
             self.paddle.far = calc_is_far(self.paddle.rect, self.ball.rect.center)
             self.paddle.update()
             dmg = self.ball.update()
-            if dmg == 0: return
-            else:
-                self.score += SCORES[dmg] # グローバルで書いた。
 
-            if prev[0] != self.score: self.state.score_image_update(prev[0], self.score)
-            if prev[1] != self.ball.life: self.state.life_image_update(self.ball.life)
+            self.score += SCORES[dmg] # グローバルで書いた。
+
+            if prev[0] != self.score:
+                self.state.score_image_update(prev[0], self.score)
+            if prev[1] != self.ball.life:
+                self.state.life_image_update(self.ball.life)
 
     def draw(self, screen):
 
@@ -281,12 +283,7 @@ class Play():
         self.paddle.draw(screen)
         self.ball.draw(screen)
 
-        # ↓statusってのを別に用意してそっちで描画する
-        # text = self.font.render("life: " + str(self.ball.life), False, (255, 255, 255))
-        # screen.blit(text, (0, 0))
-        # text = self.font.render("score: " + str(self.score), False, (255, 255, 255))
-        # screen.blit(text, (120, 0))
-        self.state.draw_status(screen)
+        self.state.draw_status(screen)  # stateの方で描画
 
         if self.state.mState == GAMEOVER: return
 
@@ -326,7 +323,13 @@ class Play():
 
         else:
             to_reset = self.state.keydown_events(key)  # ここでなんか返す
-            if to_reset: self.reset()
+            if to_reset:
+                self.reset()
+
+        # ALLCLEARのときに1回だけボーナス追加。
+        if self.state.mState == ALLCLEAR and self.ball.life > 0:
+            self.add_bonus()
+            # ここでGameStateにスコアデータを更新してもらう。
 
     def reset(self):
         self.state.mState = TITLE
@@ -337,6 +340,13 @@ class Play():
         self.score = 0
 
         self.state.stage = 1  # ステージを戻す
+
+    def add_bonus(self):
+        # ALLCLEAR時にボーナス追加。
+        bonus = self.ball.life * 2000
+        self.state.score_image_update(self.score, self.score + bonus)
+        self.score += bonus
+        self.ball.life = 0
 
     def load_image(self, filename, flag = False):
         """画像のロード"""
@@ -571,21 +581,13 @@ class GameState:
         self.font = pygame.font.SysFont(None, 40)
         self.cursol = 0
         self.stage = 1
-        # self.stage_playable = 4  # 5つクリアするたびに1ずつ増えていく感じ。
+
         self.life_image = []     # ステータスバーに表示する残りライフの画像。
         for i in range(2):
             self.life_image.append(self.numbers[0])
         self.score_image = []    # ステータスバーに表示するスコアの画像。
         for i in range(6):
-            slf.score_image.append(self.numbers[0])
-
-    # というわけでこの「drawtext」をなくすのが目標。
-    # def drawtext(self, screen, words, location, flag = False):
-    #     if not flag:
-    #         text = self.font.render(words, False, (255, 255, 255), (0, 0, 0))
-    #     else:
-    #         text = self.font.render(words, False, (0, 0, 0), (255, 255, 255))
-    #     screen.blit(text, location)
+            self.score_image.append(self.numbers[0])
 
     def life_image_update(self, new_life):
         # ライフ画像の更新
@@ -606,80 +608,62 @@ class GameState:
         screen.blit(self.texts[12], (5, 5))
         screen.blit(self.texts[8], (144, 5))
         for i in range(2):
-            screen.blit(self.life_image[1 - i], 90 + 18 * i, 5)
+            screen.blit(self.life_image[1 - i], (90 + 18 * i, 5))
         for i in range(6):
-            screen.blit(self.score_image[5 - i], 240 + 18 * i, 5)
+            screen.blit(self.score_image[5 - i], (240 + 18 * i, 5))
 
     def draw(self, screen):
         if self.mState == TITLE:
             screen.blit(self.texts[0], (200, 120))
-            screen.blit(self.texts[1], (180, 180))
-            # self.drawtext(screen, "BLOCKBREAK", (200, 120))
-            # flag = []
-            # if self.cursol == 0: flag = [True, False]
-            # else: flag = [False, True]
-            # self.drawtext(screen, "PLAY", (240, 200), flag[0])
-            # self.drawtext(screen, "RANK", (240, 240), flag[1])
+            screen.blit(self.texts[1], (140, 180))
 
         elif self.mState == SELECT:
             # 選択しているところは黒文字
             index = [i + 1 for i in range(6)]
             index[self.cursol] += 7  # 黒文字
-            # flag = []
-            # for i in range((MAX_STAGE // 5) + 1): flag.append(False)
-            # flag[self.cursol] = True
 
             screen.blit(self.choices[index[0]], (200, 100)) 
-            # self.drawtext(screen, "TO  TITLE", (200, 100), flag[0])
+
             for i in range(MAX_STAGE // 5):
-                # words = "STAGE " + str((i * 5) + 1) + " - " + str((i + 1) * 5)
+
                 screen.blit(self.choices[index[i + 1]], (200, 160 + 40 * i))
-                # 挑戦可能なステージには"*"を付加する
-                # if i + 1 <= self.stage_playable: words += " *"
-                # self.drawtext(screen, words, (200, 160 + 40 * i), flag[i + 1])
+
 
         elif self.mState == START:
             screen.blit(self.texts[2], (160, 120))
-            screen.blit(self.numbers[self.stage // 10], (270, 120))
-            screen.blit(self.numbers[self.stage % 10], (300, 120))
-            # self.drawtext(screen, "STAGE " + str(self.stage), (200, 120))
+            screen.blit(self.numbers[self.stage // 10], (258, 120))
+            screen.blit(self.numbers[self.stage % 10], (276, 120))
 
         elif self.mState == PAUSE:
             screen.blit(self.texts[3], (200, 120))
-            # self.drawtext(screen, "PAUSE", (200, 120))
-            # flag = []
-            # if self.cursol == 0: flag = [True, False]
-            # else: flag = [False, True]
+
             index = [0, 1]
             index[self.cursol] += 7  # 黒文字
             screen.blit(self.choices[index[0]], (240, 200))
             screen.blit(self.choices[index[1]], (240, 240))
-            # self.drawtext(screen, "PLAY", (240, 200), flag[0])
-            # self.drawtext(screen, "TO  TITLE", (240, 240), flag[1])
 
         elif self.mState == GAMEOVER:
             screen.blit(self.texts[4], (200, 120))
             screen.blit(self.texts[1], (120, 180))
-            # self.drawtext(screen, "GAME  OVER", (200, 120))
-            # self.drawtext(screen, "PRESS  RETURN", (200, 180))
 
         elif self.mState == CLEAR:
             screen.blit(self.texts[5], (200, 120))
-            # self.drawtext(screen, "CLEAR!!", (200, 120))
+
             if self.stage % 5 == 0:
                 screen.blit(self.texts[6], (120, 180))
-                # self.drawtext(screen, "STAGE ALL CLEAR!!", (120, 180))
             screen.blit(self.texts[1], (120, 240))
-            # self.drawtext(screen, "PRESS  RETURN", (200, 240))
+
+        elif self.mState == ALLCLEAR:
+            screen.blit(self.texts[7], (100, 100))
+            screen.blit(self.texts[8], (100, 160))
+            screen.blit(self.texts[9], (100, 220))
+            screen.blit(self.texts[11], (100, 260))
+            screen.blit(self.texts[1], (100, 320))
 
     def keydown_events(self, key):
         if self.mState == TITLE:
-            # if key == K_DOWN or key == K_UP:
-            #     self.cursol = (self.cursol + 1) % 2
             if key == K_RETURN:
-                # if self.cursol == 0:
                 self.mState = SELECT
-                # 2(RANK)は工事中
             return False
 
         if self.mState == SELECT:
@@ -696,7 +680,6 @@ class GameState:
                 if self.cursol == 0:
                     self.mState = TITLE
                 else:
-                    # if self.cursol > self.stage_playable: return False
                     self.mState = START
                     self.stage = (self.cursol * 5) - 4
                     self.cursol = 0
@@ -720,13 +703,21 @@ class GameState:
             if key == K_RETURN:
                 self.stage += 1
                 if self.stage % 5 == 1:  # 6, 11, ...の時にリセット。
-                    self.mState = TITLE
+                    self.mState = ALLCLEAR
                     # 次のステージに行けるようにする。
-                    # self.stage_playable = max(self.stage_playable, (self.stage // 5) + 1)
-                    # self.stage_playable = min(self.stage_playable, MAX_STAGE // 5)
-                    return True  # stageはこっちで1に戻す感じ。
+                    return False  # stageはこっちで1に戻す感じ。
                 else:
                     self.mState = START; return False
+        # ALLCLEARからENTERキー押してTITLEに戻るのでここはFalseで。
+
+        if self.mState == ALLCLEAR:
+            if key == K_RETURN:
+                self.mState = TITLE
+                return True
+
+    def read_data(self): pass # データの読み込み
+
+    def write_data(self): pass # データの書き込み
 
 if __name__ =="__main__":
     Play()
