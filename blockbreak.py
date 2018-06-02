@@ -197,9 +197,9 @@ class Play():
             surface.blit(imageList, (0, 0), (0, 30 * i, widths[i], 30))
             GameState.texts.append(surface)
 
-        # 各種数字画像
+        # 各種数字画像(*追加)
         imageList = self.load_image("NUMBERS")
-        for i in range(10):
+        for i in range(11):
             surface = pygame.Surface((18, 30))
             surface.blit(imageList, (0, 0), (18 * i, 0, 18, 30))
             GameState.numbers.append(surface)
@@ -328,8 +328,9 @@ class Play():
 
         # ALLCLEARのときに1回だけボーナス追加。
         if self.state.mState == ALLCLEAR and self.ball.life > 0:
-            self.add_bonus()
+            bonus = self.add_bonus()
             # ここでGameStateにスコアデータを更新してもらう。
+            self.state.hi_score_update(bonus, self.score)
 
     def reset(self):
         self.state.mState = TITLE
@@ -347,6 +348,7 @@ class Play():
         self.state.score_image_update(self.score, self.score + bonus)
         self.score += bonus
         self.ball.life = 0
+        return bonus  # bonusが戻る。
 
     def load_image(self, filename, flag = False):
         """画像のロード"""
@@ -574,7 +576,7 @@ class ball:
 
 class GameState:
     texts = []   # テキスト関係
-    numbers = []  # 数字関係（0123456789)
+    numbers = []  # 数字関係（0123456789)(*追加)
     choices = []  # 選択肢関係
     def __init__(self):
         self.mState = TITLE
@@ -588,6 +590,21 @@ class GameState:
         self.score_image = []    # ステータスバーに表示するスコアの画像。
         for i in range(6):
             self.score_image.append(self.numbers[0])
+
+        self.backup = []  # 解放状況、ハイスコア、フラグ。
+        self.read_data()  # textデータ読み込み
+
+        self.score_board = []    # 1～5のハイスコアとボーナスの、うん。
+        for i in range(5):
+            n = self.backup[i + 5]  # 5, 6, 7, 8, 9のところ。
+            line = []
+            for i in range(6):
+                line.append(self.numbers[n % 10]) # ハイスコア表示用のスペース。
+                n //= 10
+            self.score_board.append(line)
+        line = []
+        for i in range(5): line.append(self.numbers[0])
+        self.score_board.append(line)  # ボーナス表示用のスペース。
 
     def life_image_update(self, new_life):
         # ライフ画像の更新
@@ -622,12 +639,21 @@ class GameState:
             index = [i + 1 for i in range(6)]
             index[self.cursol] += 7  # 黒文字
 
-            screen.blit(self.choices[index[0]], (200, 100)) 
+            screen.blit(self.choices[index[0]], (80, 100))
+            screen.blit(self.choices[9], (280, 100))
 
-            for i in range(MAX_STAGE // 5):
-
-                screen.blit(self.choices[index[i + 1]], (200, 160 + 40 * i))
-
+            limit = 0
+            for i in range(5):
+                if self.backup[i] > 0:
+                    limit += 1
+                else: break
+            for i in range(limit):
+                screen.blit(self.choices[index[i + 1]], (80, 160 + 40 * i))
+                for k in range(6):  # ハイスコア表示できるようにしてみた。
+                    screen.blit(self.score_board[i][5 - k], (280 + 18 * k, 160 + 40 * i))
+                if self.backup[i] == 3:
+                    screen.blit(self.numbers[10], (60, 160 + 40 * i))
+            # あとは、0なら表示しない、それと、3なら*をつける、かな・・
 
         elif self.mState == START:
             screen.blit(self.texts[2], (160, 120))
@@ -657,8 +683,16 @@ class GameState:
             screen.blit(self.texts[7], (100, 100))
             screen.blit(self.texts[8], (100, 160))
             screen.blit(self.texts[9], (100, 220))
-            screen.blit(self.texts[11], (100, 260))
+            if self.backup[10] == 1:
+                screen.blit(self.texts[11], (100, 260))
             screen.blit(self.texts[1], (100, 320))
+            for i in range(5):
+                screen.blit(self.score_board[5][4 - i], (170 + 18 * i, 100))
+            for i in range(6):
+                screen.blit(self.score_image[5 - i], (200 + 18 * i, 160))
+            x = self.stage // 5 - 1
+            for i in range(6):
+                screen.blit(self.score_board[x][5 - i], (250 + 18 * i, 220))
 
     def keydown_events(self, key):
         if self.mState == TITLE:
@@ -713,11 +747,51 @@ class GameState:
         if self.mState == ALLCLEAR:
             if key == K_RETURN:
                 self.mState = TITLE
+                # ここでステージの解放、及び、
+                # 3 3 3 3でかつ0なら1にする処理を挟む。
+                # ついでに書き込みも忘れずに。
+                x = self.stage // 5
+                if x < 4 and self.backup[x] == 0: self.backup[x] = 1 # 次のステージ組解放  
+                if self.backup[4] == 0 and self.backup[0] + self.backup[1] + self.backup[2] + self.backup[3] == 12:
+                    self.backup[4] = 1  # EXTRA解放
+                self.backup[10] = 0  # フラグを消す。
                 return True
 
-    def read_data(self): pass # データの読み込み
+    def read_data(self):
+        # データの読み込み
+        filename = os.path.join("stages", "scores.txt")
+        fp = open(filename, "r")
+        self.backup = fp[0].rstrip().split()  # 改行取ってスペース区切り。
+        self.backup.append(0)
+        fp.close()
+        # 始めの5つは0, 1, 3で、その後の5つがスコアー。最後のは
+        # ハイスコアを更新するとき1になるフラグ。
 
-    def write_data(self): pass # データの書き込み
+    def write_data(self):
+        # データの書き込み
+        filename = os.path.join("stages", "scores.txt")
+        fp.open(filename, "w")
+        fp.write(str(self.backup[0]))
+        for i in range(1, 10):
+            fp.write(" " + str(self.backup[i]))
+        fp.close()
+
+    def hi_score_update(self, bonus, score):
+        # ここで全部やる。(0)bonus画像設定、さらにscore(最終スコア)と
+        # stageから分かるそのステージ組のハイスコアを比べて上がるようなら
+        # (1)ハイスコアbackupの更新、(2)表示画像の更新、
+        # (3)1→3になるようならそこを更新。このデータを元にALLCLEAR画面にあれする。
+        for i in range(5):
+            self.score_board[5][i] = self.numbers[bonus % 10]
+            bonus //= 10
+        x = self.stage // 5 - 1
+        if score > self.backup[5 + x]:
+            if self.backup[x] == 1: self.backup[x] = 3
+            self.backup[5 + x] = score
+            for i in range(6):
+                self.score_board[x][i] = self.numbers[score % 10]
+                score //= 10
+            self.backup[10] = 1  # フラグ。テキスト表示用。
 
 if __name__ =="__main__":
     Play()
