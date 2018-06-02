@@ -298,6 +298,7 @@ class Play():
     def key_handler(self):
         for event in pygame.event.get():
             if event.type == QUIT:
+                self.state.write_data()  # データの書き込み(セーブ)
                 pygame.quit()
                 sys.exit()
             elif event.type == KEYDOWN:
@@ -305,6 +306,7 @@ class Play():
 
     def keydown_event(self, key):
         if key == K_ESCAPE:
+            self.state.write_data()   # データの書き込み(セーブ)
             pygame.quit()
             sys.exit()
         if self.state.mState == PLAY:
@@ -593,6 +595,10 @@ class GameState:
 
         self.backup = []  # 解放状況、ハイスコア、フラグ。
         self.read_data()  # textデータ読み込み
+        self.limit = 0    # 解放状況、たとえば2なら1～10まで。
+        for i in range(5):
+            if self.backup[i] > 0: self.limit += 1
+            else: break
 
         self.score_board = []    # 1～5のハイスコアとボーナスの、うん。
         for i in range(5):
@@ -622,8 +628,8 @@ class GameState:
             i += 1    
 
     def draw_status(self, screen):
-        screen.blit(self.texts[12], (5, 5))
-        screen.blit(self.texts[8], (144, 5))
+        screen.blit(self.texts[12], (5, 5))    # LIFE
+        screen.blit(self.texts[8], (144, 5))   # SCORE
         for i in range(2):
             screen.blit(self.life_image[1 - i], (90 + 18 * i, 5))
         for i in range(6):
@@ -631,8 +637,8 @@ class GameState:
 
     def draw(self, screen):
         if self.mState == TITLE:
-            screen.blit(self.texts[0], (200, 120))
-            screen.blit(self.texts[1], (140, 180))
+            screen.blit(self.texts[0], (200, 120))  # TITLE
+            screen.blit(self.texts[1], (140, 180))  # PRESS ENTER KEY
 
         elif self.mState == SELECT:
             # 選択しているところは黒文字
@@ -640,14 +646,9 @@ class GameState:
             index[self.cursol] += 7  # 黒文字
 
             screen.blit(self.choices[index[0]], (80, 100))
-            screen.blit(self.choices[9], (280, 100))
+            screen.blit(self.texts[9], (280, 100))  # Hi-SCORE
 
-            limit = 0
-            for i in range(5):
-                if self.backup[i] > 0:
-                    limit += 1
-                else: break
-            for i in range(limit):
+            for i in range(self.limit):
                 screen.blit(self.choices[index[i + 1]], (80, 160 + 40 * i))
                 for k in range(6):  # ハイスコア表示できるようにしてみた。
                     screen.blit(self.score_board[i][5 - k], (280 + 18 * k, 160 + 40 * i))
@@ -656,12 +657,12 @@ class GameState:
             # あとは、0なら表示しない、それと、3なら*をつける、かな・・
 
         elif self.mState == START:
-            screen.blit(self.texts[2], (160, 120))
+            screen.blit(self.texts[2], (160, 120))  # STAGE
             screen.blit(self.numbers[self.stage // 10], (258, 120))
             screen.blit(self.numbers[self.stage % 10], (276, 120))
 
         elif self.mState == PAUSE:
-            screen.blit(self.texts[3], (200, 120))
+            screen.blit(self.texts[3], (200, 120))  # PAUSE
 
             index = [0, 1]
             index[self.cursol] += 7  # 黒文字
@@ -669,25 +670,25 @@ class GameState:
             screen.blit(self.choices[index[1]], (240, 240))
 
         elif self.mState == GAMEOVER:
-            screen.blit(self.texts[4], (200, 120))
-            screen.blit(self.texts[1], (120, 180))
+            screen.blit(self.texts[4], (200, 120))  # GAME OVER...
+            screen.blit(self.texts[1], (120, 180))  # PRESS ENTER KEY
 
         elif self.mState == CLEAR:
-            screen.blit(self.texts[5], (200, 120))
+            screen.blit(self.texts[5], (200, 120))  # CLEAR!!
 
             if self.stage % 5 == 0:
-                screen.blit(self.texts[6], (120, 180))
-            screen.blit(self.texts[1], (120, 240))
+                screen.blit(self.texts[6], (120, 180))  # STAGE ALL CLEAR!!
+            screen.blit(self.texts[1], (120, 240))  # PRESS ENTER KEY
 
         elif self.mState == ALLCLEAR:
-            screen.blit(self.texts[7], (100, 100))
-            screen.blit(self.texts[8], (100, 160))
-            screen.blit(self.texts[9], (100, 220))
+            screen.blit(self.texts[7], (100, 100))  # LIFE BONUS
+            screen.blit(self.texts[8], (100, 160))  # SCORE
+            screen.blit(self.texts[9], (100, 220))  # Hi-SCORE
             if self.backup[10] == 1:
-                screen.blit(self.texts[11], (100, 260))
-            screen.blit(self.texts[1], (100, 320))
+                screen.blit(self.texts[11], (100, 260))  # Hi-SCORE UPDATE!!
+            screen.blit(self.texts[1], (100, 320))  # PRESS ENTER KEY
             for i in range(5):
-                screen.blit(self.score_board[5][4 - i], (170 + 18 * i, 100))
+                screen.blit(self.score_board[5][4 - i], (270 + 18 * i, 100))
             for i in range(6):
                 screen.blit(self.score_image[5 - i], (200 + 18 * i, 160))
             x = self.stage // 5 - 1
@@ -702,11 +703,11 @@ class GameState:
 
         if self.mState == SELECT:
             if key == K_DOWN:
-                self.cursol = (self.cursol + 1) % ((MAX_STAGE // 5) + 1)
+                self.cursol = (self.cursol + 1) % (self.limit + 1)
 
             elif key == K_UP:
                 if self.cursol > 0:
-                    self.cursol = (self.cursol - 1) % ((MAX_STAGE // 5) + 1)
+                    self.cursol = (self.cursol + self.limit) % (self.limit + 1)
                 else:
                     self.cursol = MAX_STAGE // 5
                 
@@ -751,9 +752,12 @@ class GameState:
                 # 3 3 3 3でかつ0なら1にする処理を挟む。
                 # ついでに書き込みも忘れずに。
                 x = self.stage // 5
-                if x < 4 and self.backup[x] == 0: self.backup[x] = 1 # 次のステージ組解放  
+                if x < 4 and self.backup[x] == 0:
+                    self.backup[x] = 1 # 次のステージ組解放
+                    self.limit += 1
                 if self.backup[4] == 0 and self.backup[0] + self.backup[1] + self.backup[2] + self.backup[3] == 12:
                     self.backup[4] = 1  # EXTRA解放
+                    self.limit = 5      # limitをMAXに。
                 self.backup[10] = 0  # フラグを消す。
                 return True
 
@@ -761,16 +765,20 @@ class GameState:
         # データの読み込み
         filename = os.path.join("stages", "scores.txt")
         fp = open(filename, "r")
-        self.backup = fp[0].rstrip().split()  # 改行取ってスペース区切り。
-        self.backup.append(0)
+        data = []
+        for row in fp:
+            row = row.rstrip()
+            data = row.split()  # 改行取ってスペース区切り。
         fp.close()
         # 始めの5つは0, 1, 3で、その後の5つがスコアー。最後のは
         # ハイスコアを更新するとき1になるフラグ。
+        for i in range(10): self.backup.append(int(data[i]))
+        self.backup.append(0)
 
     def write_data(self):
         # データの書き込み
         filename = os.path.join("stages", "scores.txt")
-        fp.open(filename, "w")
+        fp = open(filename, "w")
         fp.write(str(self.backup[0]))
         for i in range(1, 10):
             fp.write(" " + str(self.backup[i]))
