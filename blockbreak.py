@@ -21,9 +21,9 @@ SCR_RECT = Rect(0, 0, 480, 400)
 SCR_W = SCR_RECT.width
 SCR_H = SCR_RECT.height
 
-MAX_STAGE = 20
+MAX_STAGE = 25
 
-TITLE, SELECT, START, PLAY, PAUSE, GAMEOVER, CLEAR, RANK = [0, 1, 2, 3, 4, 5, 6, 7]
+TITLE, SELECT, START, PLAY, PAUSE, GAMEOVER, CLEAR, ALLCLEAR = [0, 1, 2, 3, 4, 5, 6, 7]
 
 SCORES = [0, 100, 300, 500, 200, 600, 50, 150]
 
@@ -86,7 +86,8 @@ class Play():
         self.frame = 0
         self.norm = 0  # 壊すべきブロックの数。
         self.score = 0   # スコア
-        self.ranking = []  # ランキングデータ、0, 1, 2, 3ごとに5ステージずつ。
+
+        
 
         while True:
             screen.fill((0, 0, 0))
@@ -107,28 +108,28 @@ class Play():
             
     def loading(self):
         # 壊せる0～4の2×1型。
-        imageList = pygame.image.load("blockimages1.png")
+        imageList = self.load_image("blockimages1")
         for i in range(5):
             surface = pygame.Surface((40, 20))
             surface.blit(imageList, (0, 0), (0, 20 * i, 40, 20))
             block.images.append(surface)
 
         # 壊せる5～9の1×2型。
-        imageList = pygame.image.load("blockimages2.png")
+        imageList = self.load_image("blockimages2")
         for i in range(5):
             surface = pygame.Surface((20, 40))
             surface.blit(imageList, (0, 0), (0, 40 * i, 20, 40))
             block.images.append(surface)
 
         # 壊せる10～14の1×1型(通常よりスコア大)。
-        imageList = pygame.image.load("blockimages3.png")
+        imageList = self.load_image("blockimages3")
         for i in range(5):
             surface = pygame.Surface((20, 20))
             surface.blit(imageList, (0, 0), (0, 20 * i, 20, 20))
             block.images.append(surface)
 
         # 壊せる15～19の2×2型(通常よりスコア小)。
-        imageList = pygame.image.load("blockimages4.png")
+        imageList = self.load_image("blockimages4")
         for i in range(5):
             surface = pygame.Surface((40, 40))
             surface.blit(imageList, (0, 0), (0, 40 * i, 40, 40))
@@ -140,46 +141,46 @@ class Play():
         # 14は1回で壊れる、壊すと1UP. 15と16は高速でないと壊れないタイプ
         # 15は緑で高速1回、16は黄緑で2回。いずれも500点追加。
         # 23～25で縦型も用意したい。
-        imageList = pygame.image.load("blockimages5.png")
+        imageList = self.load_image("blockimages5")
         for i in range(3):
             surface = pygame.Surface((40, 20))
             surface.blit(imageList, (0, 0), (0, 20 * i, 40, 20))
             block.images.append(surface)
 
-        imageList = pygame.image.load("blockimages6.png")
+        imageList = self.load_image("blockimages6")
         for i in range(3):
             surface = pygame.Surface((20, 40))
             surface.blit(imageList, (0, 0), (0, 40 * i, 20, 40))
             block.images.append(surface)
 
         # 上部、両サイド(26と27, 26以降はすべて壊せないブロック。).
-        surface = pygame.image.load("blockupper.png")
+        surface = self.load_image("blockupper")
         block.images.append(surface)
-        surface = pygame.image.load("blockside.png")
+        surface = self.load_image("blockside")
         block.images.append(surface)
 
         # ここに20種類の壊せないブロック(28～47)を記述。
         # 小文字のaが97だから69を引いてコード番号にする。
         # 本当はエディタで作って16進数2桁で保存する方がいいって分かってるけどね。
-        imageList = pygame.image.load("blockimages7.png")
+        imageList = self.load_image("blockimages7")
         for i in range(10):
             surface = pygame.Surface((20 * (i + 1), 20))
             surface.blit(imageList, (0, 0), (0, 20 * i, 20 * (i + 1), 20))
             block.images.append(surface)
 
-        imageList = pygame.image.load("blockimages8.png")
+        imageList = self.load_image("blockimages8")
         for i in range(10):
             surface = pygame.Surface((20, 20 * (i + 1)))
             surface.blit(imageList, (0, 0), (20 * i, 0, 20, 20 * (i + 1)))
             block.images.append(surface)
 
-        imageList = pygame.image.load("paddleimages.png")
+        imageList = self.load_image("paddleimages")
         for i in range(2):
             surface = pygame.Surface((80, 5))
             surface.blit(imageList, (0, 0), (0, 5 * i, 80, 5))
             paddle.images.append(surface)
 
-        imageList = pygame.image.load("ballimages.png")
+        imageList = self.load_image("ballimages")
         for i in range(2):
             surface = pygame.Surface((16, 16))
             surface.blit(imageList, (0, 0), (16 * i, 0, 16, 16))
@@ -187,14 +188,39 @@ class Play():
             ball.images.append(surface)
 
         # 発射方向のポインター。
-        self.dirimage = pygame.image.load("pointerimage.png")
+        self.dirimage = self.load_image("pointerimage")
+
+        # 各種テキスト
+        imageList = self.load_image("TEXTS")
+        widths = [160, 340, 80, 80, 200, 120, 280, 165, 95, 145, 180, 85, 370]
+        for i in range(13):
+            surface = pygame.Surface((widths[i], 30))
+            surface.blit(imageList, (0, 0), (0, 30 * i, widths[i], 30))
+            GameState.texts.append(surface)
+
+        # 各種数字画像
+        imageList = self.load_image("NUMBERS")
+        for i in range(10):
+            surface = pygame.Surface((18, 30))
+            surface.blit(imageList, (0, 0), (18 * i, 30, 18, 30))
+            GameState.numbers.append(surface)
+
+        # 各種選択肢画像
+        imageList = self.load_image("CHOICES")
+        for i in range(14):
+            w = 180
+            if w % 7 == 0: w = 65
+            elif w % 7 == 1: w = 130
+            surface = pygame.Surface((w, 30))
+            surface.blit(imageList, (0, 0), (0, 30 * i, w, 30))
+            GameState.choices.append(surface)
 
     def pre_loading(self):
         self.blocks.empty()  # 一旦空にする
         self.norm = 0        # ノルムリセット。
 
         data = []
-        fp = open("bbstage" + str(self.state.stage) + ".map", "r")
+        fp = open(self.load_stage(self.state.stage), "r")
         for line in fp:
             line = line.rstrip()
             data.append(list(line))
@@ -303,6 +329,7 @@ class Play():
 
     def load_image(self, filename, flag = False):
         """画像のロード"""
+        filename += ".png"
         filename = os.path.join("images", filename)
         image = pygame.image.load(filename).convert()
         if not flag: return image
@@ -525,29 +552,42 @@ class ball:
         self.count = 0
 
 class GameState:
-    images = []  # テキスト関係
+    texts = []   # テキスト関係
+    numbers = []  # 数字関係（0123456789)
+    choices = []  # 選択肢関係
     def __init__(self):
         self.mState = TITLE
         self.font = pygame.font.SysFont(None, 40)
         self.cursol = 0
         self.stage = 1
         self.stage_playable = 4  # 5つクリアするたびに1ずつ増えていく感じ。
-        
-    def drawtext(self, screen, words, location, flag = False):
-        if not flag:
-            text = self.font.render(words, False, (255, 255, 255), (0, 0, 0))
-        else:
-            text = self.font.render(words, False, (0, 0, 0), (255, 255, 255))
-        screen.blit(text, location)
+        self.life_image = []     # ステータスバーに表示する残りライフの画像。
+        self.score_image = []    # ステータスバーに表示するスコアの画像。
+
+    # というわけでこの「drawtext」をなくすのが目標。
+    # def drawtext(self, screen, words, location, flag = False):
+    #     if not flag:
+    #         text = self.font.render(words, False, (255, 255, 255), (0, 0, 0))
+    #     else:
+    #         text = self.font.render(words, False, (0, 0, 0), (255, 255, 255))
+    #     screen.blit(text, location)
+
+    def life_image_update(self, new_life): pass
+        # ライフ画像の更新
+
+    def score_image_update(self, old_sc, new_sc): pass
+        # スコア画像の更新
 
     def draw(self, screen):
         if self.mState == TITLE:
-            self.drawtext(screen, "BLOCKBREAK", (200, 120))
-            flag = []
-            if self.cursol == 0: flag = [True, False]
-            else: flag = [False, True]
-            self.drawtext(screen, "PLAY", (240, 200), flag[0])
-            self.drawtext(screen, "RANK", (240, 240), flag[1])
+            screen.blit(self.texts[0], (200, 120))
+            screen.blit(self.texts[1], (180, 180))
+            # self.drawtext(screen, "BLOCKBREAK", (200, 120))
+            # flag = []
+            # if self.cursol == 0: flag = [True, False]
+            # else: flag = [False, True]
+            # self.drawtext(screen, "PLAY", (240, 200), flag[0])
+            # self.drawtext(screen, "RANK", (240, 240), flag[1])
 
         elif self.mState == SELECT:
             # 選択しているところは黒文字
@@ -563,7 +603,10 @@ class GameState:
                 self.drawtext(screen, words, (200, 160 + 40 * i), flag[i + 1])
 
         elif self.mState == START:
-            self.drawtext(screen, "STAGE " + str(self.stage), (200, 120))
+            screen.blit(self.texts[2], (160, 120))
+            screen.blit(self.numbers[self.stage // 10], (270, 120))
+            screen.blit(self.numbers[self.stage % 10], (300, 120))
+            # self.drawtext(screen, "STAGE " + str(self.stage), (200, 120))
 
         elif self.mState == PAUSE:
             self.drawtext(screen, "PAUSE", (200, 120))
@@ -585,11 +628,11 @@ class GameState:
 
     def keydown_events(self, key):
         if self.mState == TITLE:
-            if key == K_DOWN or key == K_UP:
-                self.cursol = (self.cursol + 1) % 2
-            elif key == K_RETURN:
-                if self.cursol == 0:
-                    self.mState = SELECT
+            # if key == K_DOWN or key == K_UP:
+            #     self.cursol = (self.cursol + 1) % 2
+            if key == K_RETURN:
+                # if self.cursol == 0:
+                self.mState = SELECT
                 # 2(RANK)は工事中
             return False
 
