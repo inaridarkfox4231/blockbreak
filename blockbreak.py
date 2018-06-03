@@ -19,8 +19,6 @@ SCR_RECT = Rect(0, 0, 480, 400)
 SCR_W = SCR_RECT.width
 SCR_H = SCR_RECT.height
 
-MAX_STAGE = 25
-
 TITLE, SELECT, START, PLAY, PAUSE, GAMEOVER, CLEAR, ALLCLEAR = [0, 1, 2, 3, 4, 5, 6, 7]
 
 SCORES = [0, 100, 300, 500, 200, 600, 50, 150]
@@ -66,12 +64,12 @@ class Play():
     def __init__(self):
         pygame.init()
         screen = pygame.display.set_mode(SCR_RECT.size)
-        pygame.display.set_caption("blockbreak_1")
+        pygame.display.set_caption("blockbreak")
 
         self.blocks = pygame.sprite.RenderUpdates()
         block.containers = self.blocks
 
-        self.loading();
+        self.loading()
         self.paddle = paddle((200, 380))
         self.ball = ball((232, 368), self.blocks, self.paddle)
 
@@ -155,8 +153,7 @@ class Play():
         block.images.append(surface)
 
         # ここに20種類の壊せないブロック(28～47)を記述。
-        # 小文字のaが97だから69を引いてコード番号にする。
-        # 本当はエディタで作って16進数2桁で保存する方がいいって分かってるけどね。
+        # 28～37が横で、38～47が縦。
         imageList = self.load_image("blockimages7")
         for i in range(10):
             surface = pygame.Surface((20 * (i + 1), 20))
