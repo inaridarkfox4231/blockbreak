@@ -222,6 +222,8 @@ class editor():
         return image
 
     def save(self): pass
+        """ファイルに保存する"""
+        # 頭にフォルダ名/ってつけるとcdのフォルダ内に入るのでそうして。
 
 class block(pygame.sprite.Sprite):
     """ブロックの定義"""
