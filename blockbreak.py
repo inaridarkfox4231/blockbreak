@@ -6,15 +6,13 @@
 # 一定以上のスコアを出すとチェックが付いて、
 # 全部チェックを付けるとEXTRAが解放される。(21～25, EXTRAとだけ表示)
 # MAXで20くらいを想定。（25？）
-# 1UPブロックでライフアップ、残りライフもスコアに影響する。
-# 今後：エディタでステージ作れるようにしたい
-# 壊せないブロックをもっと活用したい
+# 1UPブロックでライフアップ、残りライフもスコアに影響する(1つにつき2000).
 
 import pygame
 from pygame.locals import *
 import sys
 import os
-from math import sin, cos, atan, radians, floor, pi
+from math import sin, cos, radians, floor
 from random import randint
 
 SCR_RECT = Rect(0, 0, 480, 400)
@@ -33,9 +31,7 @@ def tonum(letter):
     # ABCD...を0123...にする。
     x = ord(letter)
     if x < 97: return x - 65  # 大文字。
-    else: return x - 69
-    # return ord(letter) - 65
-    # ここをいじって小文字使えるようにしたい
+    else: return x - 69  # 小文字。
 
 def calc_ballpos(rect, pos):
     x = pos[0]; y = pos[1]
@@ -709,7 +705,7 @@ class GameState:
                 if self.cursol > 0:
                     self.cursol = (self.cursol + self.limit) % (self.limit + 1)
                 else:
-                    self.cursol = MAX_STAGE // 5
+                    self.cursol = self.limit
                 
             elif key == K_RETURN:
                 if self.cursol == 0:
