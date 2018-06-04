@@ -175,9 +175,8 @@ class editor():
                 else:
                     if event_code == self.current_stage: return
                     else:
-                        # セーブしてない時はセーブしてから移る
-                        if not self.saved:
-                            self.save_stage(); self.saved = True
+                        # セーブしてない時はステージを移ることができない。
+                        if not self.saved: return
                         # 1～25のときはステージを更新
                         self.load_stage(event_code)
                         self.current_stage = event_code  # 選択ステージを更新
@@ -191,7 +190,7 @@ class editor():
             # ブロックの種類の切り替え
             if self.mode == CANNOT_BREAK: self.mode = CAN_BREAK
             else: self.mode = CANNOT_BREAK
-        elif key == K_BACKSPACE:
+        elif key == K_SPACE:
             # 最後に保存した時の状態に戻す
             if self.saved: return
             self.load_stage(self.current_stage)
@@ -199,7 +198,7 @@ class editor():
         else:
             x, y = pygame.mouse.get_pos()
             x = x // GS; y = y // GS
-            if key == K_DELETE:
+            if key == K_LALT:
                 # ブロックの削除
                 if self.delete_block((x, y)): self.saved = False
             else:
@@ -214,6 +213,7 @@ class editor():
         for i in range(13):
             for j in range(22):
                 self.stagemap[i][j] = '.'
+                self.occupy[i][j] = 0
         self.blocks.empty()
 
     def calc_clickevent(self, x, y):
@@ -276,10 +276,10 @@ class editor():
             if self.occupy[y][x] == 1: return False # 占有されていたらNG.
         # ブロックを作る。
         block(pos, kind)
+        self.stagemap[pos[1]][pos[0]] = toletter(kind)  # kindから文字を生成
         for o_pos in occupied:
             x, y = o_pos
             self.occupy[y][x] = 1
-            self.stagemap[y][x] = toletter(kind)  # kindから文字を生成
         return True # 変化があったら報告
 
     def delete_block(self, pos):
@@ -317,7 +317,12 @@ class editor():
             for j in range(22):
                 if data[i][j] == '.': continue
                 else: self.stagemap[i][j] = data[i][j]
-                block((j, i), tonum(data[i][j]))
+                kind = tonum(data[i][j])
+                block((j, i), kind)
+                occupied = self.calc_occupy((j, i), kind)
+                for o_pos in occupied:
+                    x, y = o_pos
+                    self.occupy[y][x] = 1
 
     def save_stage(self):
         # current_stageのところにデータを保存する
@@ -346,20 +351,3 @@ class block(pygame.sprite.Sprite):
 
 if __name__ == "__main__":
     editor()
-"""
-    posと押されたキーの組み合わせに対して
-    ブロックの種類、占有マスが計算され、
-    占有マスに'.'でないものがあったらFalse(何も起きない).
-    はみ出す場合も却下。でなければ、
-    posに'なんか'が記入されてblocksに入る（入るのは生成すれば勝手に入る）。
-    取り消すには、K_DELETE押す。そのとき、posに対するところが
-    '.'なら何も起きない。でなければそこを'.'にして、かつ該当する
-    posをもつブロックをblocksから（一意に定まる）みつけてあればkillする。
-    最後に、ファイルの生成。mapmaker_0.pyのメソッドを使う。
-    さらに、ファイルの名前を入力するとき.mapで終わってないとエラーが出るようにする。
-    そして、保存が終わったらデータを初期化してエディタ画面に戻る。
-    最後に、画面の下の方にESCAPEで終了とかエンターキーで保存とか書いとけ。
-    コントロールキー押すと入れ替わる。
-    あ、そうだ、os.path.existsで存在するファイル名かどうか調べて、
-    無い時だけ作るのを忘れずに。
-"""
