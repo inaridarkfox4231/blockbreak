@@ -30,7 +30,7 @@ class editor():
     def __init__(self):
         pygame.init()
         screen = pygame.display.set_mode(SCR_RECT.size)
-        pygame.display.set_caption("editor")
+        pygame.display.set_caption("Stage_Editor2.0")
 
         self.blocks = pygame.sprite.RenderUpdates()
         block.containers = self.blocks
@@ -65,77 +65,39 @@ class editor():
         # 背景
         self.backImg = self.load_image("editor_bg")
 
-        # ステージボタン
-        self.stage_button = []
-        imageList = self.load_image("SELECTSTAGE")
-        for i in range(25):
-            surface = pygame.Surface((20, 20))
-            surface.blit(imageList, (0, 0), (20 * i, 0, 20, 20))
-            self.stage_button.append(surface)
+        rectseries = []
+        for i in range(10): rectseries.append([])
+        for i in range(5): rectseries[0].append(Rect(0, 20 * i, 40, 20))
+        for i in range(5): rectseries[1].append(Rect(0, 40 * i, 20, 40))
+        for i in range(5): rectseries[2].append(Rect(0, 20 * i, 20, 20))
+        for i in range(5): rectseries[3].append(Rect(0, 40 * i, 40, 40))
+        for i in range(3): rectseries[4].append(Rect(0, 20 * i, 40, 20))
+        for i in range(3): rectseries[5].append(Rect(0, 40 * i, 20, 40))
+        for i in range(10): rectseries[6].append(Rect(0, 20 * i, 20 * (i + 1), 20))
+        for i in range(10): rectseries[7].append(Rect(20 * i, 0, 20, 20 * (i + 1)))
+        for i in range(25): rectseries[8].append(Rect(20 * i, 0, 20, 20))
+        for i in range(2): rectseries[9].append(Rect(0, 40 * i, 80, 40))
 
-        # セーブボタン
-        self.save_button = []
-        imageList = self.load_image("SAVE")
-        for i in range(2):
-            surface = pygame.Surface((80, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 80, 40))
-            self.save_button.append(surface)
+        # 0～4: 2×1型(横). 5～9: 1×2型(縦). 10～14: 1×1型. 15～19: 2×2型.
+        # 20～22: 1×2型(ハートと強いブロック). 23～25: その縦バージョン.
+        # 26～35: 壊せないブロック(横) 36～45: 壊せないブロック(縦).
+        for i in range(8):
+            block.images += self.create_images("blockimages" + str(i + 1), rectseries[i])
 
-        # 壊せる0～4の2×1型。
-        imageList = self.load_image("blockimages1")
-        for i in range(5):
-            surface = pygame.Surface((40, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 40, 20))
-            block.images.append(surface)
+        # ステージボタン。
+        self.stage_button = self.create_images("SELECTSTAGE", rectseries[8])
+        # セーブボタン。
+        self.save_button = self.create_images("SAVE", rectseries[9])
 
-        # 壊せる5～9の1×2型。
-        imageList = self.load_image("blockimages2")
-        for i in range(5):
-            surface = pygame.Surface((20, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 20, 40))
-            block.images.append(surface)
-
-        # 壊せる10～14の1×1型(通常よりスコア大)。
-        imageList = self.load_image("blockimages3")
-        for i in range(5):
-            surface = pygame.Surface((20, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 20, 20))
-            block.images.append(surface)
-
-        # 壊せる15～19の2×2型(通常よりスコア小)。
-        imageList = self.load_image("blockimages4")
-        for i in range(5):
-            surface = pygame.Surface((40, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 40, 40))
-            block.images.append(surface)
-
-        # 壊せる20～22の1×2型。1UP, 緑、黄緑。
-        imageList = self.load_image("blockimages5")
-        for i in range(3):
-            surface = pygame.Surface((40, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 40, 20))
-            block.images.append(surface)
-
-        # 23～25で縦型も用意したい。1UP, 緑、黄緑。
-        imageList = self.load_image("blockimages6")
-        for i in range(3):
-            surface = pygame.Surface((20, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 20, 40))
-            block.images.append(surface)
-
-        # 壊せないブロック26～35（横型、長さは1～10）
-        imageList = self.load_image("blockimages7")
-        for i in range(10):
-            surface = pygame.Surface((20 * (i + 1), 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 20 * (i + 1), 20))
-            block.images.append(surface)
-
-        # 壊せないブロック36～45（縦型、長さは1～10）
-        imageList = self.load_image("blockimages8")
-        for i in range(10):
-            surface = pygame.Surface((20, 20 * (i + 1)))
-            surface.blit(imageList, (0, 0), (20 * i, 0, 20, 20 * (i + 1)))
-            block.images.append(surface)
+    def create_images(self, filename, RectList):
+        """データをもとにイメージ配列を作成"""
+        imageList = self.load_image(filename)
+        images = []
+        for rect in RectList:
+            surface = pygame.Surface(rect.size)
+            surface.blit(imageList, (0, 0), rect)
+            images.append(surface)
+        return images
 
     def draw(self, screen):
         screen.blit(self.backImg, (0, 0))
