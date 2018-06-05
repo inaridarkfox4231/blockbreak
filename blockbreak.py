@@ -18,12 +18,15 @@ SCR_RECT = Rect(0, 0, 480, 400)
 SCR_W = SCR_RECT.width
 SCR_H = SCR_RECT.height
 
-TITLE, SELECT, DIFFICULTY = [0, 1, 2]
+TITLE, SELECT, MODE = [0, 1, 2]
 START, PLAY, PAUSE, GAMEOVER, CLEAR, ALLCLEAR = [3, 4, 5, 6, 7, 8]
 
 SCORES = [0, 100, 300, 500, 200, 600, 50, 150]
 
 direction = [23, 45, 67, 113, 135, 157]
+
+MAX_LIFE = [3, 5, 10, 13]
+PADDLE_TYPE = [0, 1, 2, 3]
 
 def tonum(letter):
     # ABCD...を0123...にする。
@@ -84,7 +87,7 @@ class Play():
             screen.fill((0, 0, 0))
             clock.tick(60)
             self.update()
-            if not self.state.mState in [TITLE, SELECT, START, ALLCLEAR]:
+            if not self.state.mState in [TITLE, SELECT, MODE, START, ALLCLEAR]:
                 self.draw(screen)
             self.state.draw(screen)
             pygame.display.update()
@@ -139,14 +142,17 @@ class Play():
         rectseries = []
         for i in range(5): rectseries.append([])
         # パドルは0～3が通常時、4～7が強化時。
-        for i in range(4): rectseries[0].append(Rect(0, 5 * i, 80 - 20 * i, 5))
-        for i in range(4): rectseries[0].append(Rect(0, 20 + 5 * i, 80 - 20 * i, 5))
+        widths = [80, 60, 40, 30]
+        for i in range(8): rectseries[0].append(Rect(0, 5 * i, widths[i % 4], 5))
+
         widths = [160, 340, 80, 80, 200, 120, 280, 165, 95, 145, 180, 370, 85]
         for i in range(13): rectseries[1].append(Rect(0, 30 * i, widths[i], 30))
         for i in range(11): rectseries[2].append(Rect(18 * i, 0, 18, 30))
+
         widths = [65, 130, 180, 180, 180, 180, 180]
         for i in range(14):
             rectseries[3].append(Rect(0, 30 * i, widths[i % 7], 30))
+
         widths = [145, 65, 100, 65, 85]
         for i in range(10):
             rectseries[4].append(Rect(0, 30 * i, widths[i % 5], 30))
@@ -193,9 +199,9 @@ class Play():
 
         if self.state.stage % 5 == 1:
             # 最初だけ。パドルとボールを作る。
-            self.paddle = paddle((200, 395), 2)
-            self.ball = ball((200, 379), self.blocks, self.paddle, 10)
-            self.state.life_image_update(10)    # ライフ画像の初期化
+            self.paddle = paddle((200, 395), PADDLE_TYPE[self.state.mode])
+            self.ball = ball((200, 379), self.blocks, self.paddle, MAX_LIFE[self.state.mode])
+            self.state.life_image_update(self.ball.life)    # ライフ画像の初期化
 
         # パドルとボールのリセット
         self.paddle.rect.topleft = (200, 395)
@@ -294,12 +300,6 @@ class Play():
 
     def reset(self):
         self.state.mState = TITLE
-
-        # ここでライフのあれこれやるのはよくない。
-        # プレロデのときにステージが5の倍数＋1ならパドルと
-        # ボール作るから、TITLE戻るたびに情報は破棄してOK.
-        # self.state.life_image_update(ball.maxlife)    # ライフのイメージを設定。
-        # self.ball.life = ball.maxlife
 
         self.state.score_image_update(self.score, 0)  # 先にイメージを変更しないと。
         self.score = 0
@@ -565,13 +565,15 @@ class ball:
 class GameState:
     texts = []   # テキスト関係
     numbers = []  # 数字関係（0123456789)(*追加)
-    choices = []  # 選択肢関係
-    difficulty = []  # 難易度選択
+    choices = []  # 選択肢関係のテキスト
+    difficulty = []  # 難易度選択のテキスト
+    EASY, NORMAL, HARD, CLAZY = [0, 1, 2, 3]  # 難易度。
     def __init__(self):
         self.mState = TITLE
         self.font = pygame.font.SysFont(None, 40)
         self.cursol = 0
         self.stage = 1
+        self.mode = self.EASY  # デフォルト。
 
         self.life_image = []     # ステータスバーに表示する残りライフの画像。
         for i in range(2):
@@ -583,6 +585,7 @@ class GameState:
         self.backup = []  # 解放状況、ハイスコア、フラグ。
         self.read_data()  # textデータ読み込み
         self.limit = 0    # 解放状況、たとえば2なら1～10まで。
+        # バックアップデータをもとに解放状況を計算。
         for i in range(5):
             if self.backup[i] > 0: self.limit += 1
             else: break
@@ -643,6 +646,16 @@ class GameState:
                     screen.blit(self.numbers[10], (60, 160 + 40 * i))
             # あとは、0なら表示しない、それと、3なら*をつける、かな・・
 
+        elif self.mState == MODE:
+            # カーソルが0から3まで動く（バックアップの初めの5つがすべて3なら4まで）
+            # backupの11番に0とか1を入れてそこで判断する。
+            index = [i for i in range(5)]
+            index[self.cursol] += 5  # 黒文字または白の地
+            for i in range(4):
+                screen.blit(self.difficulty[index[i]], (100, 100 + 40 * i))
+            if self.backup[10] == 1:
+                screen.blit(self.difficulty[index[4]], (100, 260))
+
         elif self.mState == START:
             screen.blit(self.texts[2], (160, 120))  # STAGE
             screen.blit(self.numbers[self.stage // 10], (258, 120))
@@ -671,7 +684,7 @@ class GameState:
             screen.blit(self.texts[7], (100, 100))  # LIFE BONUS
             screen.blit(self.texts[8], (100, 160))  # SCORE
             screen.blit(self.texts[9], (100, 220))  # Hi-SCORE
-            if self.backup[10] == 1:
+            if self.backup[11] == 1:
                 screen.blit(self.texts[11], (100, 260))  # Hi-SCORE UPDATE!!
             screen.blit(self.texts[1], (100, 320))  # PRESS ENTER KEY
             for i in range(5):
@@ -688,26 +701,44 @@ class GameState:
                 self.mState = SELECT
             return False
 
-        if self.mState == SELECT:
+        elif self.mState == SELECT:
             if key == K_DOWN:
-                self.cursol = (self.cursol + 1) % (self.limit + 1)
+                self.cursol = (self.cursol + 1) % (self.limit + 1); return False
 
             elif key == K_UP:
                 if self.cursol > 0:
                     self.cursol = (self.cursol + self.limit) % (self.limit + 1)
                 else:
                     self.cursol = self.limit
+                return False
                 
             elif key == K_RETURN:
                 if self.cursol == 0:
-                    self.mState = TITLE
+                    self.mState = TITLE; return True
                 else:
-                    self.mState = START
+                    self.mState = MODE
                     self.stage = (self.cursol * 5) - 4
                     self.cursol = 0
                 return False
 
-        if self.mState == PAUSE:
+        elif self.mState == MODE:
+            if key == K_DOWN:
+                self.cursol += 1
+                if self.cursol > 3 + self.backup[10]: self.cursol = 0
+            elif key == K_UP:
+                self.cursol -= 1
+                if self.cursol < 0: self.cursol = 3 + self.backup[10]
+            elif key == K_RETURN:
+                if self.cursol == 0:
+                    self.mState = SELECT
+                    return False
+                else:
+                    self.mState = START
+                    self.mode = self.cursol - 1  # 1, 2, 3, 4のときEASY, NORMAL, HARD, CLAZY.
+                    self.cursol = 0
+            return False
+
+        elif self.mState == PAUSE:
             if key == K_DOWN or key == K_UP:
                 self.cursol = (self.cursol + 1) % 2; return False
             elif key == K_RETURN:
@@ -721,7 +752,7 @@ class GameState:
             if key == K_RETURN:
                 self.mState = TITLE; return True
 
-        if self.mState == CLEAR:
+        elif self.mState == CLEAR:
             if key == K_RETURN:
                 self.stage += 1
                 if self.stage % 5 == 1:  # 6, 11, ...の時にリセット。
@@ -732,7 +763,7 @@ class GameState:
                     self.mState = START; return False
         # ALLCLEARからENTERキー押してTITLEに戻るのでここはFalseで。
 
-        if self.mState == ALLCLEAR:
+        elif self.mState == ALLCLEAR:
             if key == K_RETURN:
                 self.mState = TITLE
                 # ここでステージの解放、及び、
@@ -745,7 +776,7 @@ class GameState:
                 if self.backup[4] == 0 and self.backup[0] + self.backup[1] + self.backup[2] + self.backup[3] == 12:
                     self.backup[4] = 1  # EXTRA解放
                     self.limit = 5      # limitをMAXに。
-                self.backup[10] = 0  # フラグを消す。
+                self.backup[11] = 0  # フラグを消す。
                 return True
 
     def read_data(self):
@@ -757,9 +788,10 @@ class GameState:
             row = row.rstrip()
             data = row.split()  # 改行取ってスペース区切り。
         fp.close()
-        # 始めの5つは0, 1, 3で、その後の5つがスコアー。最後のは
-        # ハイスコアを更新するとき1になるフラグ。
-        for i in range(10): self.backup.append(int(data[i]))
+        # 始めの5つは0, 1, 3で、その後の5つがスコア。
+        # あと、11番目は3が5つ並んだ時に0から1にする（CLAZY解禁状況）。
+        # 12番目はハイスコアを更新するとき1になるフラグ用。
+        for i in range(11): self.backup.append(int(data[i]))
         self.backup.append(0)
 
     def write_data(self):
@@ -767,7 +799,7 @@ class GameState:
         filename = os.path.join("stages", "scores.txt")
         fp = open(filename, "w")
         fp.write(str(self.backup[0]))
-        for i in range(1, 10):
+        for i in range(1, 11):
             fp.write(" " + str(self.backup[i]))
         fp.close()
 
@@ -781,12 +813,13 @@ class GameState:
             bonus //= 10
         x = self.stage // 5 - 1
         if score > self.backup[5 + x]:
-            if self.backup[x] == 1: self.backup[x] = 3
+            # if self.backup[x] == 1: self.backup[x] = 3  # これは廃止する方向で・・HARDのとき1→3.
+            if self.mode == self.HARD: self.backup[x] = 3  # HARDのとき1→3.
             self.backup[5 + x] = score
             for i in range(6):
                 self.score_board[x][i] = self.numbers[score % 10]
                 score //= 10
-            self.backup[10] = 1  # フラグ。テキスト表示用。
+            self.backup[11] = 1  # フラグ。テキスト表示用。
 
 if __name__ =="__main__":
     Play()

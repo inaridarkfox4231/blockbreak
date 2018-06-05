@@ -20,3 +20,4 @@
 　・EXTRAをHARDでクリアするとCLAZYが解禁（パドル長20, ライフ12）。以上。
 　・モード変更はステージ選択の後Difficultyを挟んでそこで選択する感じで。上から順に、
 　　TO SELECT, EASY, NORMAL, HARD, CLAZY（未解禁）。
+　・CLAZYがちょっとゲームにならないレベルであることが判明。
