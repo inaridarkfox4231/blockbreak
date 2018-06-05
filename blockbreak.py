@@ -762,6 +762,8 @@ class GameState:
                 if x < 4 and self.backup[x] == 0:
                     self.backup[x] = 1 # 次のステージ組解放
                     self.limit += 1
+                if self.mode == self.HARD:
+                    self.backup[x - 1] = 3  # とにかくHARDでクリアしたら3を立てる。
                 if self.backup[4] == 0 and self.backup[0] + self.backup[1] + self.backup[2] + self.backup[3] == 12:
                     self.backup[4] = 1  # EXTRA解放
                     self.limit = 5      # limitをMAXに。
@@ -803,8 +805,7 @@ class GameState:
         for i in range(5):
             self.score_board[5][i] = self.numbers[bonus % 10]
             bonus //= 10
-        x = self.stage // 5 - 1
-        if self.mode == self.HARD and self.backup[x] == 1: self.backup[x] = 3  # HARDのとき1→3.
+        x = self.stage // 5 - 1   # 現在のステージ組の番号（0～4）
         if score > self.backup[5 + x]:
             self.backup[5 + x] = score
             for i in range(6):
