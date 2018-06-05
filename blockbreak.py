@@ -78,7 +78,9 @@ class Play():
         self.state.life_image_update(self.ball.life)
 
         clock = pygame.time.Clock()
-        self.frame = 0
+        
+        self.frame = 0  # リセット時のポインタの場所を・・消すかも（パドルに委ねる）
+
         self.norm = 0  # 壊すべきブロックの数。
         self.score = 0   # スコア
 
@@ -201,8 +203,8 @@ class Play():
         imageList = self.load_image("CHOICES")
         for i in range(14):
             w = 180
-            if w % 7 == 0: w = 65
-            elif w % 7 == 1: w = 130
+            if i % 7 == 0: w = 65
+            elif i % 7 == 1: w = 130
             surface = pygame.Surface((w, 30))
             surface.blit(imageList, (0, 0), (0, 30 * i, w, 30))
             GameState.choices.append(surface)
@@ -485,7 +487,7 @@ class ball:
         self.fpy = float(pos[1])
         self.set_on = True
         self.count = 0   # 強化してる時用のカウント
-        self.life = self.maxlife   # 10回落ちたら終了
+        self.life = self.maxlife   # maxlife回落ちたら終了
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -498,14 +500,15 @@ class ball:
             self.fpy = float(self.rect.y)
             return 0  # ここ。Noneになってしまうよ。
         
-        # ブロックと衝突判定
+        # ブロック, リフトと衝突判定
         # 1. farなのはスルー。2. 移動後の座標で衝突しないものはスルー。
         # 3. 衝突するならフラグに従って、偶数フラグなら値により速度反転、
         # 奇数フラグ(角っちょ)の場合は当たり方によって方向をいじる感じ。
-        dmg = self.collideblock()  # ダメージを記録               
-        
-        # パドルと衝突判定
+
+        # パドルと衝突判定（パドルが先）
         self.collidepaddle()
+        # ブロックと衝突判定（ダメージを記録）
+        dmg = self.collideblock()              
 
         # 位置更新
         self.fpx += self.fpvx
@@ -575,7 +578,7 @@ class ball:
                 self.fpvy = floor(self.fpvy * 15) * 0.1
                 self.image = self.images[1]
             return
-        if phase == 0 or phase == 4: self.fpvx = -self.fpvx; return
+        # 薄くなったので「横から当たるとき」はスルーで。
         if phase == 5:
             newv = calc_reflect(self.paddle.rect.topleft, newrect.center, self.speed)
             self.fpvx = -newv[0]; self.fpvy = -newv[1]
