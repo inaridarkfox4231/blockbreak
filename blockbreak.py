@@ -389,7 +389,6 @@ class block(pygame.sprite.Sprite):
 class paddle:
     images = []
     speed = 6
-    KEYBOARD, MOUSE = [0, 1]
     def __init__(self, pos, kind):
         self.kind = kind  # 0, 1, 2, 3がある(EASY, NORMAL, HARD, CLAZY).
         self.image = self.images[self.kind]  # 難易度によってパドル長が変化する。
@@ -399,46 +398,25 @@ class paddle:
         self.ballpos = -1 # 衝突判定用
         self.far = False  # ボールが遠くにあるときに判定しない
         self.count = 0    # 40～0の範囲で動く、40～32のときに赤く光る
-        self.mode = self.MOUSE  # キーボードかマウスか
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
     def update(self):
-        if self.mode == self.KEYBOARD:
-            key_pressed = pygame.key.get_pressed()
-            up = key_pressed[K_UP]
-        else:
-            mouse_pressed = pygame.mouse.get_pressed()
-            up = mouse_pressed[0]
+        mouse_pressed = pygame.mouse.get_pressed()
     
         # カウントは40～0で、40～32のときに光ってる感じ。
-        if up and self.count == 0:
+        if mouse_pressed[0] and self.count == 0:
             self.count = 40
             self.image = self.images[self.kind + 4]
         if self.count > 0:
             self.count -= 1
             if self.count < 32: self.image = self.images[self.kind]
 
-        if self.mode == self.KEYBOARD:
-            self.move_keyboard(key_pressed[K_RIGHT], key_pressed[K_LEFT])
-        else:
-            self.move_mouse(pygame.mouse.get_pos()[0])
+        self.rect.centerx = pygame.mouse.get_pos()[0]
 
         if self.rect.left< 20: self.rect.left = 20
         if self.rect.right > SCR_W - 20: self.rect.right = SCR_W - 20
-
-    def move_keyboard(self, right_pressed, left_pressed):
-        if right_pressed:
-            self.vx = self.speed
-        elif left_pressed:
-            self.vx = -self.speed
-        else:
-            self.vx = 0
-        self.rect.x += self.vx
-
-    def move_mouse(self, x):
-        self.rect.centerx = x
 
 class ball:
     r = 8
@@ -807,14 +785,14 @@ class GameState:
         # ここで全部やる。(0)bonus画像設定、さらにscore(最終スコア)と
         # stageから分かるそのステージ組のハイスコアを比べて上がるようなら
         # (1)ハイスコアbackupの更新、(2)表示画像の更新、
-        # (3)1→3になるようならそこを更新。このデータを元にALLCLEAR画面にあれする。
+        # (3)HARDでクリアしたら星を付ける。
+        # (4)ハイスコア更新したらフラグ立ててALLCLEAR画面にあれする。
         for i in range(5):
             self.score_board[5][i] = self.numbers[bonus % 10]
             bonus //= 10
         x = self.stage // 5 - 1
         if score > self.backup[5 + x]:
-            # if self.backup[x] == 1: self.backup[x] = 3  # これは廃止する方向で・・HARDのとき1→3.
-            if self.mode == self.HARD: self.backup[x] = 3  # HARDのとき1→3.
+            if self.mode == self.HARD: self.backup[x] = 3  # HARDのとき1→3. 
             self.backup[5 + x] = score
             for i in range(6):
                 self.score_board[x][i] = self.numbers[score % 10]
