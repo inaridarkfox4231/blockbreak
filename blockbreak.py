@@ -310,9 +310,7 @@ class Play():
                 self.ball.fpvy = 0.1 * floor(dy * self.ball.speed * 10)
                 self.frame = 0
                 self.ball.set_on = False  # ボールがパドルから離れる
-            elif key == K_UP and not self.ball.set_on and self.paddle.count == 0:
-                self.paddle.count = 16
-                self.paddle.image = paddle.images[1]
+
             elif key == K_LCTRL and not self.ball.set_on:  # ボールがパドル上にあるときはポーズ不可。
                 self.state.mState = PAUSE  # 左CTRLキーでポーズ
 
@@ -419,6 +417,8 @@ class block(pygame.sprite.Sprite):
 
 class paddle:
     images = []
+    speed = 6
+    KEYBOARD, MOUSE = [0, 1]
     def __init__(self, pos):
         self.image = self.images[0]
         self.rect = self.image.get_rect()
@@ -427,25 +427,46 @@ class paddle:
         self.ballpos = -1 # 衝突判定用
         self.far = False  # ボールが遠くにあるときに判定しない
         self.count = 0    # 0～32の範囲で動く、32～16のときに赤く光る
+        self.mode = self.MOUSE  # キーボードかマウスか
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
     def update(self):
-        keys = pygame.key.get_pressed()
-        if keys[K_RIGHT]:
-            self.vx = 6
-        elif keys[K_LEFT]:
-            self.vx = -6
+        if self.mode == self.KEYBOARD:
+            key_pressed = pygame.key.get_pressed()
+            up = key_pressed[K_UP]
         else:
-            self.vx = 0
-        if self.rect.left + self.vx < 20: self.vx = 0
-        if self.rect.right + self.vx > SCR_W - 20: self.vx = 0
-        self.rect.x += self.vx
-        # カウントは16～0で、16～8のときに光ってる感じ。
+            mouse_pressed = pygame.mouse.get_pressed()
+            up = mouse_pressed[0]
+    
+        # カウントは40～0で、40～32のときに光ってる感じ。
+        if up and self.count == 0:
+            self.count = 40
+            self.image = self.images[1]
         if self.count > 0:
             self.count -= 1
-            if self.count < 8: self.image = self.images[0]
+            if self.count < 32: self.image = self.images[0]
+
+        if self.mode == self.KEYBOARD:
+            self.move_keyboard(key_pressed[K_RIGHT], key_pressed[K_LEFT])
+        else:
+            self.move_mouse(pygame.mouse.get_pos()[0])
+
+        if self.rect.left< 20: self.rect.left = 20
+        if self.rect.right > SCR_W - 20: self.rect.right = SCR_W - 20
+
+    def move_keyboard(self, right_pressed, left_pressed):
+        if right_pressed:
+            self.vx = self.speed
+        elif left_pressed:
+            self.vx = -self.speed
+        else:
+            self.vx = 0
+        self.rect.x += self.vx
+
+    def move_mouse(self, x):
+        self.rect.centerx = x
 
 class ball:
     r = 8
@@ -548,7 +569,7 @@ class ball:
         phase = self.paddle.ballpos
         if phase == 6:
             self.fpvy = -self.fpvy
-            if self.paddle.count & 8 and self.count == 0:  # 強化(複数回強化しないよう修正)
+            if self.paddle.count & 32 and self.count == 0:  # 強化(複数回強化しないよう修正)
                 self.count = 300; self.speed = 6.0;
                 self.fpvx = floor(self.fpvx * 15) * 0.1
                 self.fpvy = floor(self.fpvy * 15) * 0.1
