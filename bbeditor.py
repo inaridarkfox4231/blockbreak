@@ -1,3 +1,6 @@
+"""
+エディタ。操作方法はレジュメを参照。
+"""
 
 import pygame
 from pygame.locals import *
@@ -51,6 +54,15 @@ class editor():
         self.loading()
         self.load_stage(1)  # とりあえずSTAGE1のデータを放り込む。
 
+        # lock. 全てのステージ（EXTRA含む)をHARDでクリアしないと使えない。
+        fp = open(os.path.join("stages", "scores.txt"), "r")
+        data = []
+        for row in fp:
+            row = row.rstrip()
+            data = row.split()
+        fp.close()
+        self.lock = 1 - int(data[10])  # 1か0か。1なら使うことは出来ない。
+
         clock = pygame.time.Clock()
 
         while True:
@@ -88,6 +100,8 @@ class editor():
         self.stage_button = self.create_images("SELECTSTAGE", rectseries[8])
         # セーブボタン。
         self.save_button = self.create_images("SAVE", rectseries[9])
+        # 警告表示
+        self.warning = self.load_image("TO_USE_EDITOR")
 
     def create_images(self, filename, RectList):
         """データをもとにイメージ配列を作成"""
@@ -100,6 +114,10 @@ class editor():
         return images
 
     def draw(self, screen):
+        if self.lock:
+            screen.blit(self.warning, (20, 20))
+            return
+
         screen.blit(self.backImg, (0, 0))
         # ステージ表示用ボタン
         for k in range(2):
@@ -125,6 +143,8 @@ class editor():
             elif event.type == KEYDOWN:
                 self.keydown_event(event.key)
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
+                # lockならばクリック不可。
+                if self.lock: return
                 self.mousedown_event(event.pos)
 
     def keydown_event(self, key):
@@ -132,7 +152,10 @@ class editor():
         if key == K_ESCAPE:
             pygame.quit()
             sys.exit()
-        elif key == K_LCTRL:
+
+        if self.lock: return
+    
+        if key == K_LCTRL:
             # ブロックの種類の切り替え
             if self.mode == CANNOT_BREAK: self.mode = CAN_BREAK
             else: self.mode = CANNOT_BREAK

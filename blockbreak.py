@@ -144,8 +144,9 @@ class Play():
         widths = [80, 60, 40, 30]
         for i in range(8): rectseries[0].append(Rect(0, 5 * i, widths[i % 4], 5))
 
-        widths = [160, 340, 80, 80, 200, 120, 280, 165, 95, 145, 180, 370, 85]
-        for i in range(13): rectseries[1].append(Rect(0, 30 * i, widths[i], 30))
+        widths = [160, 340, 80, 80, 200, 120, 280, 165, 95, 145, 180, 370, 85, 240]
+        for i in range(14): rectseries[1].append(Rect(0, 30 * i, widths[i], 30))
+
         for i in range(11): rectseries[2].append(Rect(18 * i, 0, 18, 30))
 
         widths = [65, 130, 180, 180, 180, 180, 180]
@@ -582,6 +583,8 @@ class GameState:
         for i in range(5): line.append(self.numbers[0])
         self.score_board.append(line)  # ボーナス表示用のスペース。
 
+        self.rc = 0  # ・・・・？？？？
+
     def life_image_update(self, new_life):
         # ライフ画像の更新
         self.life_image[0] = self.numbers[new_life % 10]
@@ -609,6 +612,8 @@ class GameState:
         if self.mState == TITLE:
             screen.blit(self.texts[0], (200, 120))  # TITLE
             screen.blit(self.texts[1], (140, 180))  # PRESS ENTER KEY
+            if self.rc == 5:
+                screen.blit(self.texts[13], (140, 230))  # SCORE ALL RESET
 
         elif self.mState == SELECT:
             # 選択しているところは黒文字
@@ -679,6 +684,10 @@ class GameState:
         if self.mState == TITLE:
             if key == K_RETURN:
                 self.mState = SELECT
+                self.rc = 0  # 元に戻す。
+            else:
+                if self.backup[10] == 0: return False
+                self.calc_resetcount(key)   # 10番フラグが立ってる時のみ。
             return False
 
         elif self.mState == SELECT:
@@ -748,7 +757,7 @@ class GameState:
                 self.mState = TITLE
                 # ここでステージの解放、及び、
                 # 3 3 3 3でかつ0なら1にする処理を挟む。
-                # ついでに書き込みも忘れずに。
+                # すべて3なら10番にフラグを立てる。→CRAZYモード、エディタ、スコアリセット。
                 x = self.stage // 5
                 if x < 4 and self.backup[x] == 0:
                     self.backup[x] = 1 # 次のステージ組解放
@@ -756,6 +765,8 @@ class GameState:
                 if self.backup[4] == 0 and self.backup[0] + self.backup[1] + self.backup[2] + self.backup[3] == 12:
                     self.backup[4] = 1  # EXTRA解放
                     self.limit = 5      # limitをMAXに。
+                if self.backup[4] == 3 and self.backup[10] == 0:
+                    self.backup[10] = 1   # いろいろ解放される（CRAZYとかエディタとか）。
                 self.backup[11] = 0  # フラグを消す。
                 return True
 
@@ -787,19 +798,32 @@ class GameState:
         # ここで全部やる。(0)bonus画像設定、さらにscore(最終スコア)と
         # stageから分かるそのステージ組のハイスコアを比べて上がるようなら
         # (1)ハイスコアbackupの更新、(2)表示画像の更新、
-        # (3)HARDでクリアしたら星を付ける。
+        # (3)HARDでクリアしたら星を付ける。（スコアは無関係）
         # (4)ハイスコア更新したらフラグ立ててALLCLEAR画面にあれする。
         for i in range(5):
             self.score_board[5][i] = self.numbers[bonus % 10]
             bonus //= 10
         x = self.stage // 5 - 1
+        if self.mode == self.HARD and self.backup[x] == 1: self.backup[x] = 3  # HARDのとき1→3.
         if score > self.backup[5 + x]:
-            if self.mode == self.HARD: self.backup[x] = 3  # HARDのとき1→3. 
             self.backup[5 + x] = score
             for i in range(6):
                 self.score_board[x][i] = self.numbers[score % 10]
                 score //= 10
             self.backup[11] = 1  # フラグ。テキスト表示用。
+
+    def calc_resetcount(self, key):
+        # 一定の条件下でrcを進めていく。
+        return
+        # self.hi_score_allreset()
+
+    def hi_score_allreset(self):
+        # ハイスコアデータ全消去
+        for i in range(5):
+            for j in range(6):
+                self.score_board[i][j] = self.numbers[0]
+            self.backup[5 + i] = 0
+        self.write_data()
 
 if __name__ =="__main__":
     Play()
