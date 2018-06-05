@@ -1,11 +1,10 @@
 # ブロック崩しできるのかできないのか
-# →←キーでパドル移動
-# タイミングよく↑キー押すと高速になる(一定時間、落下で解除)
+# マウス操作でパドル移動
+# タイミングよく左クリックすると高速になる(一定時間、落下で解除)
 # 高速時はスコアUP, 高速でしか壊せないブロックもある
-# スコアは5ステージごとに設定されている。
-# 一定以上のスコアを出すとチェックが付いて、
+# EASY, NORMAL, HARDがあって、HARDクリアするとチェックが付く。
 # 全部チェックを付けるとEXTRAが解放される。(21～25, EXTRAとだけ表示)
-# MAXで20くらいを想定。（25？）
+# EXTRAもHARDでクリアするとお楽しみとしてCLAZYが解禁。以上。
 # 1UPブロックでライフアップ、残りライフもスコアに影響する(1つにつき2000).
 
 import pygame
@@ -19,7 +18,8 @@ SCR_RECT = Rect(0, 0, 480, 400)
 SCR_W = SCR_RECT.width
 SCR_H = SCR_RECT.height
 
-TITLE, SELECT, START, PLAY, PAUSE, GAMEOVER, CLEAR, ALLCLEAR = [0, 1, 2, 3, 4, 5, 6, 7]
+TITLE, SELECT, DIFFICULTY = [0, 1, 2]
+START, PLAY, PAUSE, GAMEOVER, CLEAR, ALLCLEAR = [3, 4, 5, 6, 7, 8]
 
 SCORES = [0, 100, 300, 500, 200, 600, 50, 150]
 
@@ -29,7 +29,7 @@ def tonum(letter):
     # ABCD...を0123...にする。
     x = ord(letter)
     if x < 97: return x - 65  # 大文字。
-    else: return x - 69  # 小文字。
+    else: return x - 97 + 26  # 小文字。
 
 def calc_ballpos(rect, pos):
     x = pos[0]; y = pos[1]
@@ -70,12 +70,8 @@ class Play():
         block.containers = self.blocks
 
         self.loading()
-        self.paddle = paddle((200, 380))
-        self.ball = ball((232, 368), self.blocks, self.paddle)
 
         self.state = GameState()  # Stateの初期化
-        # ここでライフ画像の初期化。
-        self.state.life_image_update(self.ball.life)
 
         clock = pygame.time.Clock()
         
@@ -102,78 +98,33 @@ class Play():
             self.key_handler()
             
     def loading(self):
-        # 壊せる0～4の2×1型。
-        imageList = self.load_image("blockimages1")
-        for i in range(5):
-            surface = pygame.Surface((40, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 40, 20))
-            block.images.append(surface)
 
-        # 壊せる5～9の1×2型。
-        imageList = self.load_image("blockimages2")
-        for i in range(5):
-            surface = pygame.Surface((20, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 20, 40))
-            block.images.append(surface)
+        # ブロックのrect.
+        rectseries = []
+        for i in range(8): rectseries.append([])
+        for i in range(5): rectseries[0].append(Rect(0, 20 * i, 40, 20))
+        for i in range(5): rectseries[1].append(Rect(0, 40 * i, 20, 40))
+        for i in range(5): rectseries[2].append(Rect(0, 20 * i, 20, 20))
+        for i in range(5): rectseries[3].append(Rect(0, 40 * i, 40, 40))
+        for i in range(3): rectseries[4].append(Rect(0, 20 * i, 40, 20))
+        for i in range(3): rectseries[5].append(Rect(0, 40 * i, 20, 40))
+        for i in range(10): rectseries[6].append(Rect(0, 20 * i, 20 * (i + 1), 20))
+        for i in range(10): rectseries[7].append(Rect(20 * i, 0, 20, 20 * (i + 1)))
 
-        # 壊せる10～14の1×1型(通常よりスコア大)。
-        imageList = self.load_image("blockimages3")
-        for i in range(5):
-            surface = pygame.Surface((20, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 20, 20))
-            block.images.append(surface)
+        # 0～4: 2×1型(横). 5～9: 1×2型(縦). 10～14: 1×1型. 15～19: 2×2型.
+        # 20～22: 1×2型(ハートと強いブロック). 23～25: その縦バージョン.
+        # 26～35: 壊せないブロック(横) 36～45: 壊せないブロック(縦).
+        # 20～25はクリア条件に寄与しない。以上。
+        for i in range(8):
+            block.images += self.create_images("blockimages" + str(i + 1), rectseries[i])
 
-        # 壊せる15～19の2×2型(通常よりスコア小)。
-        imageList = self.load_image("blockimages4")
-        for i in range(5):
-            surface = pygame.Surface((40, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 40, 40))
-            block.images.append(surface)
-
-        # ノルムが関係するのは0～19のブロック「だけ」なので注意する。
-
-        # 壊せる20～22の1×2型。すべて壊さなくてもクリア可能。
-        # 14は1回で壊れる、壊すと1UP. 15と16は高速でないと壊れないタイプ
-        # 15は緑で高速1回、16は黄緑で2回。いずれも500点追加。
-        # 23～25で縦型も用意したい。
-        imageList = self.load_image("blockimages5")
-        for i in range(3):
-            surface = pygame.Surface((40, 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 40, 20))
-            block.images.append(surface)
-
-        imageList = self.load_image("blockimages6")
-        for i in range(3):
-            surface = pygame.Surface((20, 40))
-            surface.blit(imageList, (0, 0), (0, 40 * i, 20, 40))
-            block.images.append(surface)
-
-        # 上部、両サイド(26と27, 26以降はすべて壊せないブロック。).
+        # 上部、両サイド(46と47)は別立て。
         surface = self.load_image("blockupper")
         block.images.append(surface)
         surface = self.load_image("blockside")
         block.images.append(surface)
 
-        # ここに20種類の壊せないブロック(28～47)を記述。
-        # 28～37が横で、38～47が縦。
-        imageList = self.load_image("blockimages7")
-        for i in range(10):
-            surface = pygame.Surface((20 * (i + 1), 20))
-            surface.blit(imageList, (0, 0), (0, 20 * i, 20 * (i + 1), 20))
-            block.images.append(surface)
-
-        imageList = self.load_image("blockimages8")
-        for i in range(10):
-            surface = pygame.Surface((20, 20 * (i + 1)))
-            surface.blit(imageList, (0, 0), (20 * i, 0, 20, 20 * (i + 1)))
-            block.images.append(surface)
-
-        imageList = self.load_image("paddleimages")
-        for i in range(2):
-            surface = pygame.Surface((80, 5))
-            surface.blit(imageList, (0, 0), (0, 5 * i, 80, 5))
-            paddle.images.append(surface)
-
+        # ボールは別立て。
         imageList = self.load_image("ballimages")
         for i in range(2):
             surface = pygame.Surface((16, 16))
@@ -181,33 +132,41 @@ class Play():
             surface.set_colorkey(surface.get_at((0, 0)), RLEACCEL)
             ball.images.append(surface)
 
-        # 発射方向のポインター。
+        # 発射方向のポインターも別立て。
         self.dirimage = self.load_image("pointerimage")
 
-        # 各種テキスト
-        imageList = self.load_image("TEXTS")
+        # パドル、テキスト、数字、ステージ選択、難易度。
+        rectseries = []
+        for i in range(5): rectseries.append([])
+        # パドルは0～3が通常時、4～7が強化時。
+        for i in range(4): rectseries[0].append(Rect(0, 5 * i, 80 - 20 * i, 5))
+        for i in range(4): rectseries[0].append(Rect(0, 20 + 5 * i, 80 - 20 * i, 5))
         widths = [160, 340, 80, 80, 200, 120, 280, 165, 95, 145, 180, 370, 85]
-        for i in range(13):
-            surface = pygame.Surface((widths[i], 30))
-            surface.blit(imageList, (0, 0), (0, 30 * i, widths[i], 30))
-            GameState.texts.append(surface)
-
-        # 各種数字画像(*追加)
-        imageList = self.load_image("NUMBERS")
-        for i in range(11):
-            surface = pygame.Surface((18, 30))
-            surface.blit(imageList, (0, 0), (18 * i, 0, 18, 30))
-            GameState.numbers.append(surface)
-
-        # 各種選択肢画像
-        imageList = self.load_image("CHOICES")
+        for i in range(13): rectseries[1].append(Rect(0, 30 * i, widths[i], 30))
+        for i in range(11): rectseries[2].append(Rect(18 * i, 0, 18, 30))
+        widths = [65, 130, 180, 180, 180, 180, 180]
         for i in range(14):
-            w = 180
-            if i % 7 == 0: w = 65
-            elif i % 7 == 1: w = 130
-            surface = pygame.Surface((w, 30))
-            surface.blit(imageList, (0, 0), (0, 30 * i, w, 30))
-            GameState.choices.append(surface)
+            rectseries[3].append(Rect(0, 30 * i, widths[i % 7], 30))
+        widths = [145, 65, 100, 65, 85]
+        for i in range(10):
+            rectseries[4].append(Rect(0, 30 * i, widths[i % 5], 30))
+
+        paddle.images += self.create_images("paddleimages", rectseries[0])
+        GameState.texts += self.create_images("TEXTS", rectseries[1])
+        GameState.numbers += self.create_images("NUMBERS", rectseries[2])
+        GameState.choices += self.create_images("CHOICES", rectseries[3])
+        GameState.difficulty += self.create_images("SELECTDIFF", rectseries[4])
+
+
+    def create_images(self, filename, RectList):
+        """データをもとにイメージ配列を作成"""
+        imageList = self.load_image(filename)
+        images = []
+        for rect in RectList:
+            surface = pygame.Surface(rect.size)
+            surface.blit(imageList, (0, 0), rect)
+            images.append(surface)
+        return images
 
     def pre_loading(self):
         self.blocks.empty()  # 一旦空にする
@@ -229,12 +188,18 @@ class Play():
                 if n < 20: self.norm += 1  # 0～19のブロックだけ加算する。
 
         # 壁は共通。
-        block((20, 40), 26)  # 天井の壁
-        block((0, 40), 27); block((460, 40), 27)  # 両サイドの壁
+        block((20, 40), 46)  # 天井の壁
+        block((0, 40), 47); block((460, 40), 47)  # 両サイドの壁
+
+        if self.state.stage % 5 == 1:
+            # 最初だけ。パドルとボールを作る。
+            self.paddle = paddle((200, 395), 2)
+            self.ball = ball((200, 379), self.blocks, self.paddle, 10)
+            self.state.life_image_update(10)    # ライフ画像の初期化
 
         # パドルとボールのリセット
         self.paddle.rect.topleft = (200, 395)
-        # ボールの位置は初期設定不要（resetでset_onになったらupdateがやってくれる）
+        self.ball.rect.centerx = self.paddle.rect.centerx
         self.ball.reset()
 
     def update(self):
@@ -330,8 +295,12 @@ class Play():
     def reset(self):
         self.state.mState = TITLE
 
-        self.state.life_image_update(ball.maxlife)    # ライフのイメージを設定。
-        self.ball.life = ball.maxlife
+        # ここでライフのあれこれやるのはよくない。
+        # プレロデのときにステージが5の倍数＋1ならパドルと
+        # ボール作るから、TITLE戻るたびに情報は破棄してOK.
+        # self.state.life_image_update(ball.maxlife)    # ライフのイメージを設定。
+        # self.ball.life = ball.maxlife
+
         self.state.score_image_update(self.score, 0)  # 先にイメージを変更しないと。
         self.score = 0
 
@@ -421,14 +390,15 @@ class paddle:
     images = []
     speed = 6
     KEYBOARD, MOUSE = [0, 1]
-    def __init__(self, pos):
-        self.image = self.images[0]
+    def __init__(self, pos, kind):
+        self.kind = kind  # 0, 1, 2, 3がある(EASY, NORMAL, HARD, CLAZY).
+        self.image = self.images[self.kind]  # 難易度によってパドル長が変化する。
         self.rect = self.image.get_rect()
         self.rect.topleft = pos
         self.vx = 0
         self.ballpos = -1 # 衝突判定用
         self.far = False  # ボールが遠くにあるときに判定しない
-        self.count = 0    # 0～32の範囲で動く、32～16のときに赤く光る
+        self.count = 0    # 40～0の範囲で動く、40～32のときに赤く光る
         self.mode = self.MOUSE  # キーボードかマウスか
 
     def draw(self, screen):
@@ -445,10 +415,10 @@ class paddle:
         # カウントは40～0で、40～32のときに光ってる感じ。
         if up and self.count == 0:
             self.count = 40
-            self.image = self.images[1]
+            self.image = self.images[self.kind + 4]
         if self.count > 0:
             self.count -= 1
-            if self.count < 32: self.image = self.images[0]
+            if self.count < 32: self.image = self.images[self.kind]
 
         if self.mode == self.KEYBOARD:
             self.move_keyboard(key_pressed[K_RIGHT], key_pressed[K_LEFT])
@@ -473,9 +443,8 @@ class paddle:
 class ball:
     r = 8
     speed = 4.0  # スピードアップ時は6.0にする。クラス変数は変更可能。
-    maxlife = 10
     images = []
-    def __init__(self, pos, blocks, paddle):
+    def __init__(self, pos, blocks, paddle, maxlife):
         self.image = self.images[0]
         self.rect = self.image.get_rect()
         self.rect.topleft = (pos[0], pos[1])
@@ -487,7 +456,7 @@ class ball:
         self.fpy = float(pos[1])
         self.set_on = True
         self.count = 0   # 強化してる時用のカウント
-        self.life = self.maxlife   # maxlife回落ちたら終了
+        self.life = maxlife   # maxlife回落ちたら終了(3, 5, 10, 12).
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -597,6 +566,7 @@ class GameState:
     texts = []   # テキスト関係
     numbers = []  # 数字関係（0123456789)(*追加)
     choices = []  # 選択肢関係
+    difficulty = []  # 難易度選択
     def __init__(self):
         self.mState = TITLE
         self.font = pygame.font.SysFont(None, 40)
