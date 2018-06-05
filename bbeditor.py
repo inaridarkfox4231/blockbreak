@@ -125,23 +125,7 @@ class editor():
             elif event.type == KEYDOWN:
                 self.keydown_event(event.key)
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
-                # ステージ選択及びセーブをマウスクリックで行う
-                x, y = event.pos
-                # 0とか1～25を返す、-1のときは何も起きない。
-                event_code = self.calc_clickevent(x, y)
-                if event_code < 0: return
-                elif event_code == 0:
-                    # 0のときはセーブする
-                    if self.saved: return
-                    self.save_stage(); self.saved = True
-                else:
-                    if event_code == self.current_stage: return
-                    else:
-                        # セーブしてない時はステージを移ることができない。
-                        if not self.saved: return
-                        # 1～25のときはステージを更新
-                        self.load_stage(event_code)
-                        self.current_stage = event_code  # 選択ステージを更新
+                self.mousedown_event(event.pos)
 
     def keydown_event(self, key):
         """キーイベント"""
@@ -169,6 +153,25 @@ class editor():
                 # なければ-1が返るのでブロックは作れない。
                 if kind >= 0:
                     if self.add_block((x, y), kind): self.saved = False
+
+    def mousedown_event(self, pos):
+        # ステージ選択及びセーブをマウスクリックで行う
+        x, y = pos
+        # 0とか1～25を返す、-1のときは何も起きない。
+        event_code = self.calc_clickevent(x, y)
+        if event_code < 0: return
+        elif event_code == 0:
+            # 0のときはセーブする
+            if self.saved: return
+            self.save_stage(); self.saved = True
+        else:
+            if event_code == self.current_stage: return
+            else:
+                # セーブしてない時はステージを移ることができない。
+                if not self.saved: return
+                # 1～25のときはステージを更新
+                self.load_stage(event_code)
+                self.current_stage = event_code  # 選択ステージを更新
     
     def map_init(self):
         """マップデータの初期化"""

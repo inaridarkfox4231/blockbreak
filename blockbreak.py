@@ -128,11 +128,10 @@ class Play():
         block.images.append(surface)
 
         # ボールは別立て。
-        imageList = self.load_image("ballimages")
+        imageList = self.load_image("ballimages", True)
         for i in range(2):
             surface = pygame.Surface((16, 16))
             surface.blit(imageList, (0, 0), (16 * i, 0, 16, 16))
-            surface.set_colorkey(surface.get_at((0, 0)), RLEACCEL)
             ball.images.append(surface)
 
         # 発射方向のポインターも別立て。
@@ -269,34 +268,38 @@ class Play():
                 sys.exit()
             elif event.type == KEYDOWN:
                 self.keydown_event(event.key)
+            elif event.type == MOUSEBUTTONDOWN:
+                if not self.state.mState == PLAY: return  # マウスのイベントはPLAY時のもののみ。
+                self.mousedown_event(event.button)
 
     def keydown_event(self, key):
         if key == K_ESCAPE:
             self.state.write_data()   # データの書き込み(セーブ)
             pygame.quit()
             sys.exit()
-        if self.state.mState == PLAY:
-            if key == K_SPACE and self.ball.set_on:
-                dx = cos(radians(direction[self.frame // 32]))
-                dy = sin(radians(direction[self.frame // 32]))
-                self.ball.fpvx = 0.1 * floor(dx * self.ball.speed * 10)
-                self.ball.fpvy = 0.1 * floor(dy * self.ball.speed * 10)
-                self.frame = 0
-                self.ball.set_on = False  # ボールがパドルから離れる
 
-            elif key == K_LCTRL and not self.ball.set_on:  # ボールがパドル上にあるときはポーズ不可。
-                self.state.mState = PAUSE  # 左CTRLキーでポーズ
-
-        else:
-            to_reset = self.state.keydown_events(key)  # ここでなんか返す
-            if to_reset:
-                self.reset()
+        to_reset = self.state.keydown_events(key)  # ここでなんか返す
+        if to_reset:
+            self.reset()
 
         # ALLCLEARのときに1回だけボーナス追加。
         if self.state.mState == ALLCLEAR and self.ball.life > 0:
             bonus = self.add_bonus()
             # ここでGameStateにスコアデータを更新してもらう。
             self.state.hi_score_update(bonus, self.score)
+
+    def mousedown_event(self, button):
+        if button == 3 and self.ball.set_on:
+            # 右クリックでボール発射
+            dx = cos(radians(direction[self.frame // 32]))
+            dy = sin(radians(direction[self.frame // 32]))
+            self.ball.fpvx = 0.1 * floor(dx * self.ball.speed * 10)
+            self.ball.fpvy = 0.1 * floor(dy * self.ball.speed * 10)
+            self.frame = 0
+            self.ball.set_on = False  # ボールがパドルから離れる
+        elif button == 2 and not self.ball.set_on:
+            # ボールが離れてる時中央クリックでポーズ
+            self.state.mState = PAUSE
 
     def reset(self):
         self.state.mState = TITLE
@@ -388,7 +391,6 @@ class block(pygame.sprite.Sprite):
 
 class paddle:
     images = []
-    speed = 6
     def __init__(self, pos, kind):
         self.kind = kind  # 0, 1, 2, 3がある(EASY, NORMAL, HARD, CLAZY).
         self.image = self.images[self.kind]  # 難易度によってパドル長が変化する。
