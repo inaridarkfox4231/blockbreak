@@ -814,8 +814,14 @@ class GameState:
 
     def calc_resetcount(self, key):
         # 一定の条件下でrcを進めていく。
-        return
-        # self.hi_score_allreset()
+        if self.rc == 0 and key == K_UP: self.rc += 1; return
+        if self.rc == 1 and key == K_DOWN: self.rc += 1; return
+        if self.rc == 2 and key == K_RIGHT: self.rc += 1; return
+        if self.rc == 3 and key == K_LEFT: self.rc += 1; return
+        if self.rc == 4 and key == K_SPACE:
+            self.rc += 1
+            self.hi_score_allreset()
+            return
 
     def hi_score_allreset(self):
         # ハイスコアデータ全消去
