@@ -551,7 +551,7 @@ class GameState:
     EASY, NORMAL, HARD, CLAZY = [0, 1, 2, 3]  # 難易度。
     def __init__(self):
         self.mState = TITLE
-        self.font = pygame.font.SysFont(None, 40)
+        # fontはexe化の際に障害となるので注意
         self.cursol = 0
         self.stage = 1
         self.mode = self.EASY  # デフォルト。
