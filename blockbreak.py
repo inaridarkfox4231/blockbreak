@@ -237,6 +237,7 @@ class Play():
             dmg = self.ball.update()
 
             self.score += SCORES[dmg] # グローバルで書いた。
+            if self.score > 1000000: self.score = 999950  # カンスト対策
 
             if prev[0] != self.score:
                 self.state.score_image_update(prev[0], self.score)
@@ -315,6 +316,7 @@ class Play():
         bonus = self.ball.life * 2000
         self.state.score_image_update(self.score, self.score + bonus)
         self.score += bonus
+        if self.score > 1000000: self.score = 999950  # カンスト対策
         self.ball.life = 0
         return bonus  # bonusが戻る。
 
@@ -458,7 +460,9 @@ class ball:
         # パドルと衝突判定（パドルが先）
         self.collidepaddle()
         # ブロックと衝突判定（ダメージを記録）
-        dmg = self.collideblock()              
+        dmg = self.collideblock()
+
+        if self.life > 49: self.life = 49  # カンスト対策
 
         # 位置更新
         self.fpx += self.fpvx
