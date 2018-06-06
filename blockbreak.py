@@ -21,7 +21,7 @@ SCR_H = SCR_RECT.height
 TITLE, SELECT, MODE = [0, 1, 2]
 START, PLAY, PAUSE, GAMEOVER, CLEAR, ALLCLEAR = [3, 4, 5, 6, 7, 8]
 
-SCORES = [0, 100, 300, 500, 200, 600, 50, 150]
+SCORES = [0, 100, 250, 500, 150, 400, 50, 100]
 
 direction = [23, 45, 67, 113, 135, 157]
 
@@ -362,17 +362,17 @@ class block(pygame.sprite.Sprite):
             if self.tough > 0:
                 self.kind -= dmg
                 self.image = self.images[self.kind]
-            if self.kind < 10: return dmg
-            elif self.kind < 15: return 3 + dmg # 4が200, 5が600.
-            else: return 5 + dmg # 6が50, 7が150のパス。大きいので低スコア。
+            if self.kind < 10: return dmg  # 1が100, 2が250.
+            elif self.kind < 15: return 3 + dmg # 4が150, 5が400.
+            else: return 5 + dmg # 6が50, 7が100のパス。大きいので低スコア。
         else:
-            # ピンクのブロック
+            # ピンクのブロック(100)
             if self.kind == 20 or self.kind == 23: self.tough = 0; return 1
-            # 緑のブロック
+            # 緑のブロック(500)
             if self.kind == 21 or self.kind == 24:
                 if dmg > 1: self.tough = 0; return 3
                 else: return 0
-            # 黄緑のブロック(→緑)
+            # 黄緑のブロック(→緑)(500)
             if self.kind == 22 or self.kind == 25:
                 if dmg > 1:
                     self.tough -= 1; self.kind -= 1
@@ -610,25 +610,25 @@ class GameState:
 
     def draw(self, screen):
         if self.mState == TITLE:
-            screen.blit(self.texts[0], (200, 120))  # TITLE
-            screen.blit(self.texts[1], (140, 180))  # PRESS ENTER KEY
+            screen.blit(self.texts[0], (160, 120))  # TITLE
+            screen.blit(self.texts[1], (70, 180))  # PRESS ENTER KEY
             if self.rc == 5:
-                screen.blit(self.texts[13], (140, 230))  # SCORE ALL RESET
+                screen.blit(self.texts[13], (120, 270))  # SCORE ALL RESET
 
         elif self.mState == SELECT:
             # 選択しているところは黒文字
             index = [i + 1 for i in range(6)]
             index[self.cursol] += 7  # 黒文字
 
-            screen.blit(self.choices[index[0]], (80, 100))
-            screen.blit(self.texts[9], (280, 100))  # Hi-SCORE
+            screen.blit(self.choices[index[0]], (80, 70))
+            screen.blit(self.texts[9], (280, 70))  # Hi-SCORE
 
             for i in range(self.limit):
-                screen.blit(self.choices[index[i + 1]], (80, 160 + 40 * i))
+                screen.blit(self.choices[index[i + 1]], (80, 130 + 40 * i))
                 for k in range(6):  # ハイスコア表示できるようにしてみた。
-                    screen.blit(self.score_board[i][5 - k], (280 + 18 * k, 160 + 40 * i))
+                    screen.blit(self.score_board[i][5 - k], (303 + 18 * k, 130 + 40 * i))
                 if self.backup[i] == 3:
-                    screen.blit(self.numbers[10], (60, 160 + 40 * i))
+                    screen.blit(self.numbers[10], (60, 130 + 40 * i))
             # あとは、0なら表示しない、それと、3なら*をつける、かな・・
 
         elif self.mState == MODE:
@@ -637,48 +637,48 @@ class GameState:
             index = [i for i in range(5)]
             index[self.cursol] += 5  # 黒文字または白の地
             for i in range(4):
-                screen.blit(self.difficulty[index[i]], (100, 100 + 40 * i))
+                screen.blit(self.difficulty[index[i]], (165, 100 + 40 * i))
             if self.backup[10] == 1:
-                screen.blit(self.difficulty[index[4]], (100, 260))
+                screen.blit(self.difficulty[index[4]], (165, 260))
 
         elif self.mState == START:
-            screen.blit(self.texts[2], (160, 120))  # STAGE
-            screen.blit(self.numbers[self.stage // 10], (258, 120))
-            screen.blit(self.numbers[self.stage % 10], (276, 120))
+            screen.blit(self.texts[2], (173, 170))  # STAGE
+            screen.blit(self.numbers[self.stage // 10], (271, 170))
+            screen.blit(self.numbers[self.stage % 10], (289, 170))
 
         elif self.mState == PAUSE:
             screen.blit(self.texts[3], (200, 120))  # PAUSE
 
             index = [0, 1]
             index[self.cursol] += 7  # 黒文字
-            screen.blit(self.choices[index[0]], (240, 200))
-            screen.blit(self.choices[index[1]], (240, 240))
+            screen.blit(self.choices[index[0]], (200, 180))
+            screen.blit(self.choices[index[1]], (200, 220))
 
         elif self.mState == GAMEOVER:
-            screen.blit(self.texts[4], (200, 120))  # GAME OVER...
-            screen.blit(self.texts[1], (120, 180))  # PRESS ENTER KEY
+            screen.blit(self.texts[4], (140, 120))  # GAME OVER...
+            screen.blit(self.texts[1], (70, 180))  # PRESS ENTER KEY
 
         elif self.mState == CLEAR:
-            screen.blit(self.texts[5], (200, 120))  # CLEAR!!
+            screen.blit(self.texts[5], (180, 120))  # CLEAR!!
 
             if self.stage % 5 == 0:
-                screen.blit(self.texts[6], (120, 180))  # STAGE ALL CLEAR!!
-            screen.blit(self.texts[1], (120, 240))  # PRESS ENTER KEY
+                screen.blit(self.texts[6], (100, 180))  # STAGE ALL CLEAR!!
+            screen.blit(self.texts[1], (70, 240))  # PRESS ENTER KEY
 
         elif self.mState == ALLCLEAR:
             screen.blit(self.texts[7], (100, 100))  # LIFE BONUS
-            screen.blit(self.texts[8], (100, 160))  # SCORE
-            screen.blit(self.texts[9], (100, 220))  # Hi-SCORE
+            screen.blit(self.texts[8], (100, 140))  # SCORE
+            screen.blit(self.texts[9], (100, 180))  # Hi-SCORE
             if self.backup[11] == 1:
-                screen.blit(self.texts[11], (100, 260))  # Hi-SCORE UPDATE!!
-            screen.blit(self.texts[1], (100, 320))  # PRESS ENTER KEY
+                screen.blit(self.texts[11], (55, 220))  # Hi-SCORE UPDATE!!
+            screen.blit(self.texts[1], (70, 260))  # PRESS ENTER KEY
             for i in range(5):
                 screen.blit(self.score_board[5][4 - i], (270 + 18 * i, 100))
             for i in range(6):
-                screen.blit(self.score_image[5 - i], (200 + 18 * i, 160))
+                screen.blit(self.score_image[5 - i], (200 + 18 * i, 140))
             x = self.stage // 5 - 1
             for i in range(6):
-                screen.blit(self.score_board[x][5 - i], (250 + 18 * i, 220))
+                screen.blit(self.score_board[x][5 - i], (250 + 18 * i, 180))
 
     def keydown_events(self, key):
         if self.mState == TITLE:
