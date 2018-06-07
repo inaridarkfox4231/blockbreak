@@ -1,0 +1,6 @@
+{
+  "STAGE_OPEN" : [true, false, false, false, false ],
+  "STAGE_HARDCLEAR" : [false, false, false, false, false],
+  "SCORE" : [0, 0, 0, 0, 0],
+  "BONUS" : false
+}
