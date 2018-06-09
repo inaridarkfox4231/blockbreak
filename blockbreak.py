@@ -568,6 +568,7 @@ class GameState:
             self.score_image.append(self.numbers[0])
 
         self.backup = []  # 解放状況、ハイスコア、フラグ。
+
         self.read_data()  # textデータ読み込み
         self.limit = 0    # 解放状況、たとえば2なら1～10まで。
         # バックアップデータをもとに解放状況を計算。
@@ -587,7 +588,7 @@ class GameState:
         for i in range(5): line.append(self.numbers[0])
         self.score_board.append(line)  # ボーナス表示用のスペース。
 
-        self.rc = 0  # ・・・・？？？？
+        self.rc = 0  # スコア全消去用のフラグ
 
     def life_image_update(self, new_life):
         # ライフ画像の更新
